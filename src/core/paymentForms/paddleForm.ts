@@ -5,7 +5,7 @@ import FormBuilder from "./formBuilder";
 import {config} from "../config/config";
 import api from "../api";
 import {setCookie} from "../../cookies";
-import {DeepLinkURL, SelectedProductDuration} from "../config/constants";
+import {DeepLinkURL, SelectedProductDuration, PaymentProviderKey} from "../config/constants";
 
 class PaddleForm implements PaymentForm {
     private paddle: Paddle | null | undefined = null
@@ -158,6 +158,8 @@ class PaddleForm implements PaymentForm {
                 if (deepLink) {
                     setCookie(DeepLinkURL, deepLink, SelectedProductDuration)
                 }
+                
+                setCookie(PaymentProviderKey, "paddle", SelectedProductDuration)
 
                 this.formBuilder.emit("payment_success", {
                     paymentProvider: "paddle",
