@@ -95,11 +95,6 @@ class PaddleForm implements PaymentForm {
                 frameStyle: settings.frameStyle,
                 allowedPaymentMethods: settings.allowedPaymentMethods as AvailablePaymentMethod[]
             },
-            customData: {
-                apphud_client_id: this.user.id,
-                paywall_id: paywallId ?? "unknown",
-                placement_id: placementId ?? "unknown",
-            },
             customer: {
                 id: this.subscription?.customer_id!,
             }
@@ -158,7 +153,7 @@ class PaddleForm implements PaymentForm {
                 if (deepLink) {
                     setCookie(DeepLinkURL, deepLink, SelectedProductDuration)
                 }
-                
+
                 setCookie(PaymentProviderKey, "paddle", SelectedProductDuration)
 
                 this.formBuilder.emit("payment_success", {
