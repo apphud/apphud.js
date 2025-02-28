@@ -22,7 +22,7 @@ import router from "./router";
 const baseHeaders = (): HeadersInit => {
     return {
         "X-SDK": "web2web",
-        "X-SDK-VERSION": (window as any).ApphudSDKVersion,
+        "X-SDK-VERSION": "2.0.0",
         "X-Platform": "web2web",
         "X-Store": "web2web",
         "Content-Type": "application/json; charset=utf-8"
