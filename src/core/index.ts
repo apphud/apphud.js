@@ -954,9 +954,8 @@ export default class ApphudSDK implements Apphud {
     /**
      * Get variable value by name
      * @param key - variable name. Example: `product1.description.price`
-     * @private
      */
-    private readVariableValueByKeyPath(key: string): string | null {
+    public readVariableValueByKeyPath(key: string): string | null {
         const keyArr = key.split(',').map(s => s.trim());
 
         // default indices
