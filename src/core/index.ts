@@ -1179,7 +1179,8 @@ export default class ApphudSDK implements Apphud {
                 product_id: product.base_plan_id,
                 paywall_id: this._currentPaywall.id,
                 placement_id: this._currentPlacement.id,
-                user_id: this.user.id
+                user_id: this.user.id,
+                upsell: true
             };
 
             if (introOffer) {
