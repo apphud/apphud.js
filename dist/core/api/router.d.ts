@@ -5,6 +5,7 @@ interface Router {
     paymentIntentUrl: (providerId: string) => string;
     subscribeUrl: (providerId: string) => string;
     customerUrl: (providerId: string) => string;
+    errorReportingUrl: () => string;
 }
 declare const router: Router;
 export default router;
