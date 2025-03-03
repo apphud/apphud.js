@@ -539,7 +539,7 @@ export default class ApphudSDK implements Apphud {
             const otherParams = Object.entries(urlParams)
                 .filter(([key]) => !attributionIds.includes(key))
                 .reduce((acc, [key, value]) => {
-                    acc[`url_param_${key}`] = value;
+                    acc[key] = value;
                     return acc;
                 }, {} as Record<string, string | string[]>)
 
