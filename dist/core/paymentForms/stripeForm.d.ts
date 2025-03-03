@@ -12,6 +12,7 @@ declare class StripeForm implements PaymentForm {
     private submit;
     private submitReadyText;
     private submitProcessingText;
+    private submitErrorText;
     private customer;
     private currentProductId;
     private currentPaywallId;

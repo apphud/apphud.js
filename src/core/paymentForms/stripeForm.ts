@@ -40,13 +40,14 @@ class StripeForm implements PaymentForm {
     private submit: HTMLButtonElement | null = null
     private submitReadyText = "Subscribe"
     private submitProcessingText = "Please wait..."
+    private submitErrorText = "Error occurred"
     private customer: CustomerSetup | null = null;
     private currentProductId: string | null = null;
     private currentPaywallId: string | undefined;
     private currentPlacementId: string | undefined;
     private subscriptionOptions?: StripeSubscriptionOptions;
     private elementIDs: { [key: string]: string } = ELEMENT_IDS.old;
-    private buttonStateSetter?: (state: "loading" | "ready" | "processing") => void | undefined;
+    private buttonStateSetter?: (state: "loading" | "ready" | "processing" | "error") => void | undefined;
 
     constructor(private user: User, private providerId: string, private accountId: string, private formBuilder: FormBuilder) {
         documentReady(async () => {
@@ -148,13 +149,13 @@ class StripeForm implements PaymentForm {
         this.setupForm(options);
     }
 
-    private setButtonState(state: "loading" | "ready" | "processing"): void {
+    private setButtonState(state: "loading" | "ready" | "processing" | "error"): void {
         if (!this.submit) {
             logError("Submit button not found. Failed to set state:", state, true)
             return
         }
 
-        if (this.buttonStateSetter) {
+        if (this.buttonStateSetter && state !== "error") {
             this.buttonStateSetter(state)
             return
         }
@@ -170,6 +171,10 @@ class StripeForm implements PaymentForm {
             case "processing":
                 this.submit.setAttribute("disabled", "disabled")
                 this.submit.innerText = this.submitProcessingText
+                break
+            case "error":
+                this.submit.setAttribute("disabled", "disabled")
+                this.submit.innerText = this.submitErrorText
                 break
         }
     }
@@ -243,12 +248,14 @@ class StripeForm implements PaymentForm {
         if (!this.stripe) {
             logError('Failed to initialize Stripe', true)
             this.displayError('Failed to initialize payment form. Please try again.')
+            this.setButtonState("error")
             return
         }
 
         if (!this.customer) {
             logError('Failed to initialize Stripe, customer not initialized', true)
             this.displayError('Failed to initialize payment form. Please try again.')
+            this.setButtonState("error")
             return
         }
 
@@ -303,7 +310,8 @@ class StripeForm implements PaymentForm {
         paymentElement.on('loaderror', (event) => {
             if (event.error) {
                 logError("Failed to load payment form", event.error, true)
-                this.displayError(event.error.message || "Failed to load payment form");
+                this.displayError("Failed to load payment form");
+                this.setButtonState("error")
             }
         });
     }
