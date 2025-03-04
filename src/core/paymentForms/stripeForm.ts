@@ -206,15 +206,20 @@ class StripeForm implements PaymentForm {
             ...(this.subscriptionOptions?.couponId && { discount_id: this.subscriptionOptions.couponId })
         };
 
-        log('Creating subscription for product:', productId);
-        this.subscription = await api.createSubscription(this.providerId, payload);
-
-        if (!this.subscription) {
-            logError('Failed to create subscription for product:', productId);
-            return;
+        try {
+            log('Creating subscription for product:', productId);
+            this.subscription = await api.createSubscription(this.providerId, payload);
+    
+            if (!this.subscription) {
+                logError('Failed to create subscription for product:', productId);
+                return;
+            }
+    
+            log('Subscription created', this.subscription);
+        } catch (error) {
+            logError('Network error creating subscription:', error);
+            throw new Error('Failed to create subscription due to network error');
         }
-
-        log('Subscription created', this.subscription);
     }    
 
     private async createCustomer(options: PaymentProviderFormOptions): Promise<void> {
@@ -356,7 +361,7 @@ class StripeForm implements PaymentForm {
 
             if (setupError) {
                 logError("Failed to confirm setup", setupError, true)
-                this.setButtonState("ready")
+                this.setButtonState("error")
                 this.displayError("Failed to process payment. Please try again.")
                 
                 this.formBuilder.emit("payment_failure", {
@@ -367,18 +372,30 @@ class StripeForm implements PaymentForm {
             }
 
             // Step 2: Create subscription using the payment method
-            const paymentMethodId = setupIntent.payment_method as string;
-            await this.createSubscription(
-                this.currentProductId!, 
-                this.currentPaywallId, 
-                this.currentPlacementId, 
-                this.customer!.id, 
-                paymentMethodId
-            );
+            try {
+                const paymentMethodId = setupIntent.payment_method as string;
+                await this.createSubscription(
+                    this.currentProductId!, 
+                    this.currentPaywallId, 
+                    this.currentPlacementId, 
+                    this.customer!.id, 
+                    paymentMethodId
+                );
+            } catch (error) {
+                logError("Subscription creation failed:", error)
+                this.setButtonState("error")
+                this.displayError("Failed to create subscription. Please try again.")
+
+                this.formBuilder.emit("payment_failure", {
+                    paymentProvider: "stripe",
+                    event: { error }
+                })
+                return
+            }
 
             if (!this.subscription) {
                 logError("Failed to create subscription")
-                this.setButtonState("ready")
+                this.setButtonState("error")
                 this.displayError("Failed to create subscription. Please try again.")
                 
                 this.formBuilder.emit("payment_failure", {
@@ -396,7 +413,7 @@ class StripeForm implements PaymentForm {
                 
                 if (confirmError) {
                     logError("Failed to confirm card payment", confirmError, true)
-                    this.setButtonState("ready")
+                    this.setButtonState("error")
                     this.displayError("Failed to confirm payment. Please try again.")
                     
                     this.formBuilder.emit("payment_failure", {
