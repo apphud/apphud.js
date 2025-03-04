@@ -14,6 +14,7 @@ declare class StripeForm implements PaymentForm {
     private submit;
     private submitReadyText;
     private submitProcessingText;
+    private submitErrorText;
     private customer;
     private currentProductId;
     private currentPaywallId;
@@ -48,6 +49,7 @@ declare class StripeForm implements PaymentForm {
      * @param options - Payment form options including Stripe UI customization
      */
     private initStripe;
+    private displayError;
     /**
      * Find form element on page and set handler for submit action
      * @param options - success url / failure url

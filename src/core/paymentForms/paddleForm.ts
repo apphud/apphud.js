@@ -49,7 +49,7 @@ class PaddleForm implements PaymentForm {
             })
             log("Paddle initialized successfully")
         } catch (error) {
-            logError("Failed to initialize Paddle:", error)
+            logError("Failed to initialize Paddle:", error, true)
         }
     }
 
@@ -71,10 +71,10 @@ class PaddleForm implements PaymentForm {
         this.currentOptions = options
         
         // Create subscription first, before initializing the form
-        try {
-            await this.createSubscription(productId, paywallId, placementId, subscriptionOptions)
-        } catch (error) {
-            logError('Failed to create subscription', error)
+        await this.createSubscription(productId, paywallId, placementId, subscriptionOptions)
+
+        if (!this.subscription) {
+            logError("Failed to create subscription")
             return
         }
         
@@ -96,7 +96,7 @@ class PaddleForm implements PaymentForm {
 
         // Verify Paddle is available
         if (!this.paddle) {
-            logError("Paddle failed to initialize")
+            logError("Paddle failed to initialize", true)
             return
         }
 
@@ -194,7 +194,7 @@ class PaddleForm implements PaymentForm {
                 }
                 await this.paddle.Checkout.open(checkoutConfig)
             } catch (error) {
-                logError("Failed to open Paddle checkout:", error)
+                logError("Failed to open Paddle checkout:", error, true)
                 this.setButtonState("ready")
                 
                 const errorElement = document.querySelector(`#${this.elementIDs[this.formType].error}`)
@@ -246,7 +246,7 @@ class PaddleForm implements PaymentForm {
                 break;
                 
             case "checkout.error":
-                logError("Payment failed:", event.data)
+                logError("Payment failed:", event.data, true)
                 this.formBuilder.emit("payment_failure", {
                     paymentProvider: "paddle",
                     event: { error: event.data }
@@ -272,7 +272,7 @@ class PaddleForm implements PaymentForm {
      */
     private setButtonState(state: "loading" | "ready" | "processing"): void {
         if (!this.submit) {
-            logError("Submit button not found. Failed to set state:", state)
+            logError("Submit button not found. Failed to set state:", state, true)
             return
         }
 
