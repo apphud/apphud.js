@@ -29,7 +29,7 @@ class PaddleForm implements PaymentForm {
             })
             log("Paddle initialized successfully")
         } catch (error) {
-            logError("Failed to initialize Paddle:", error)
+            logError("Failed to initialize Paddle", error, true)
         }
     }
 
@@ -51,10 +51,10 @@ class PaddleForm implements PaymentForm {
         this.currentOptions = options
         
         // Create subscription first, before initializing the form
-        try {
-            await this.createSubscription(productId, paywallId, placementId, subscriptionOptions)
-        } catch (error) {
-            logError('Failed to create subscription', error)
+        await this.createSubscription(productId, paywallId, placementId, subscriptionOptions)
+
+        if (!this.subscription) {
+            logError("Failed to create subscription")
             return
         }
 
@@ -73,14 +73,14 @@ class PaddleForm implements PaymentForm {
 
         // Verify Paddle is available
         if (!this.paddle) {
-            logError("Paddle failed to initialize")
+            logError("Paddle failed to initialize", true)
             return
         }
 
         const settings = options?.paddleSettings || {}
 
         if (!this.currentOptions?.id) {
-            logError("Paddle form id is required")
+            logError("Paddle form id is required", true)
             return
         }
 
@@ -94,11 +94,6 @@ class PaddleForm implements PaymentForm {
                 frameInitialHeight: settings.frameInitialHeight,
                 frameStyle: settings.frameStyle,
                 allowedPaymentMethods: settings.allowedPaymentMethods as AvailablePaymentMethod[]
-            },
-            customData: {
-                apphud_client_id: this.user.id,
-                paywall_id: paywallId ?? "unknown",
-                placement_id: placementId ?? "unknown",
             },
             customer: {
                 id: this.subscription?.customer_id!,
@@ -126,7 +121,7 @@ class PaddleForm implements PaymentForm {
             }
             this.paddle.Checkout.open(checkoutConfig)
         } catch (error) {
-            logError("Failed to open Paddle checkout:", error)
+            logError("Failed to open Paddle checkout:", error, true)
             this.setButtonState("ready")
 
             if (settings.errorCallback) {
@@ -178,7 +173,7 @@ class PaddleForm implements PaymentForm {
                 break;
                 
             case "checkout.error":
-                logError("Payment failed:", event.data)
+                logError("Payment failed:", event.data, true)
                 this.formBuilder.emit("payment_failure", {
                     paymentProvider: "paddle",
                     event: { error: event.data }
@@ -198,6 +193,20 @@ class PaddleForm implements PaymentForm {
                     paymentProvider: "paddle", 
                     event: {} 
                 })
+                break;
+
+            case "checkout.payment.failed":
+                logError("Payment failed", event.data, true)
+                this.formBuilder.emit("payment_failure", {
+                    paymentProvider: "paddle",
+                    event: { error: event.data }
+                })
+                this.setButtonState("ready")
+                if (this.currentOptions?.paddleSettings?.errorCallback) {
+                    this.currentOptions.paddleSettings.errorCallback(
+                        typeof event.data === "string" ? event.data : "Payment failed"
+                    )
+                }
                 break;
         }
     }
@@ -235,14 +244,15 @@ class PaddleForm implements PaymentForm {
             ...(subscriptionOptions?.discountId && { discount_id: subscriptionOptions.discountId })
         }
 
-        log('Creating subscription with payload:', payload);
+        log('Creating subscription for product:', productId);
         this.subscription = await api.createSubscription(this.provider.id, payload)
 
         if (!this.subscription) {
-            logError(`Subscription was not created for price_id`, productId)
-        } else {
-            log('Subscription created', this.subscription)
+            logError(`Failed to create subscription for product`, productId)
+            return
         }
+        
+        log('Subscription created', this.subscription)
     }
 }
 

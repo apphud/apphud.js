@@ -12,6 +12,7 @@ declare class StripeForm implements PaymentForm {
     private submit;
     private submitReadyText;
     private submitProcessingText;
+    private submitErrorText;
     private customer;
     private currentProductId;
     private currentPaywallId;
@@ -21,6 +22,7 @@ declare class StripeForm implements PaymentForm {
     private buttonStateSetter?;
     constructor(user: User, providerId: string, accountId: string, formBuilder: FormBuilder);
     private injectStyles;
+    private displayError;
     /**
      * Show Stripe form
      * @param productId - stripe price_id

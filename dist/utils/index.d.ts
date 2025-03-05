@@ -1,7 +1,11 @@
 import { ApphudFunc, ApphudHash } from "../types";
 export declare const canStringify: boolean;
 export declare const log: (...message: any[]) => void;
-export declare const logError: (...message: any[]) => void;
+/**
+ * Log error to console and optionally report to backend
+ * @param args - Error message(s) to log and potentially report, with an optional boolean at the end to control reporting
+ */
+export declare const logError: (...args: any[]) => void;
 export declare const documentReady: (callback: ApphudFunc) => void;
 export declare const generateSHA256: (input: any) => Promise<string>;
 declare const _default: {

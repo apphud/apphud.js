@@ -6,6 +6,7 @@ declare const _default: {
     createSubscription: (providerId: string, data: SubscriptionParams) => Promise<Subscription>;
     setAttribution: (queryParams: string, data: AttributionData) => Promise<SuccessMessage>;
     createCustomer: (providerId: string, data: CustomerParams) => Promise<CustomerSetup>;
+    reportError: (errorMessage: string) => Promise<void>;
 };
 export default _default;
 //# sourceMappingURL=index.d.ts.map

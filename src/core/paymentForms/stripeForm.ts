@@ -40,13 +40,14 @@ class StripeForm implements PaymentForm {
     private submit: HTMLButtonElement | null = null
     private submitReadyText = "Subscribe"
     private submitProcessingText = "Please wait..."
-    private customer: { id: string, client_secret: string } | null = null;
+    private submitErrorText = "Error occurred"
+    private customer: CustomerSetup | null = null;
     private currentProductId: string | null = null;
     private currentPaywallId: string | undefined;
     private currentPlacementId: string | undefined;
     private subscriptionOptions?: StripeSubscriptionOptions;
     private elementIDs: { [key: string]: string } = ELEMENT_IDS.old;
-    private buttonStateSetter?: (state: "loading" | "ready" | "processing") => void | undefined;
+    private buttonStateSetter?: (state: "loading" | "ready" | "processing" | "error") => void | undefined;
 
     constructor(private user: User, private providerId: string, private accountId: string, private formBuilder: FormBuilder) {
         documentReady(async () => {
@@ -82,6 +83,13 @@ class StripeForm implements PaymentForm {
         styleElement.id = styleId;
         styleElement.textContent = styles;
         document.head.appendChild(styleElement);
+    }
+
+    private displayError(message: string): void {
+        const errorElement = document.querySelector(`#${this.elementIDs.error}`)
+        if (errorElement) {
+            errorElement.textContent = message
+        }
     }
 
     /**
@@ -131,41 +139,23 @@ class StripeForm implements PaymentForm {
             this.submitReadyText = this.submit.innerText
         }
 
-        try {
-            // Just create the customer and initialize the form
-            log("Create Stripe customer for user", this.user.id);
-            const customer = await this.createCustomer(options);
-            this.customer = { id: customer.id, client_secret: customer.client_secret };
-
-            // Initialize Stripe elements
-            this.initStripe(options);
-            
-            // Setup form submission handler
-            this.setupForm(options)
-
-        } catch (error) {
-            logError("Failed to initialize Stripe form:", error)
-            this.setButtonState("ready")
-            
-            const errorElement = document.querySelector(`#${this.elementIDs.error}`)
-            if (errorElement) {
-                errorElement.textContent = "Failed to initialize payment form. Please try again."
-            }
-            
-            this.formBuilder.emit("payment_failure", {
-                paymentProvider: "stripe",
-                event: { error }
-            })
-        }
+        // Create customer
+        await this.createCustomer(options);
+        
+        // Initialize Stripe elements
+        this.initStripe(options);
+        
+        // Setup form submission handler
+        this.setupForm(options);
     }
 
-    private setButtonState(state: "loading" | "ready" | "processing"): void {
+    private setButtonState(state: "loading" | "ready" | "processing" | "error"): void {
         if (!this.submit) {
-            logError("Submit button not found. Failed to set state:", state)
+            logError("Submit button not found. Failed to set state:", state, true)
             return
         }
 
-        if (this.buttonStateSetter) {
+        if (this.buttonStateSetter && state !== "error") {
             this.buttonStateSetter(state)
             return
         }
@@ -181,6 +171,10 @@ class StripeForm implements PaymentForm {
             case "processing":
                 this.submit.setAttribute("disabled", "disabled")
                 this.submit.innerText = this.submitProcessingText
+                break
+            case "error":
+                this.submit.setAttribute("disabled", "disabled")
+                this.submit.innerText = this.submitErrorText
                 break
         }
     }
@@ -212,34 +206,41 @@ class StripeForm implements PaymentForm {
             ...(this.subscriptionOptions?.couponId && { discount_id: this.subscriptionOptions.couponId })
         };
 
-        log('Creating subscription with payload:', payload);
-        this.subscription = await api.createSubscription(this.providerId, payload);
-
-        if (!this.subscription) {
-            throw new Error('Subscription was not created');
+        try {
+            log('Creating subscription for product:', productId);
+            this.subscription = await api.createSubscription(this.providerId, payload);
+    
+            if (!this.subscription) {
+                logError('Failed to create subscription for product:', productId);
+                return;
+            }
+    
+            log('Subscription created', this.subscription);
+        } catch (error) {
+            logError('Network error creating subscription:', error);
+            throw new Error('Failed to create subscription due to network error');
         }
-
-        log('Subscription created', this.subscription);
     }    
 
-    private async createCustomer(options: PaymentProviderFormOptions): Promise<CustomerSetup> {
+    private async createCustomer(options: PaymentProviderFormOptions): Promise<void> {
         const defaultPaymentMethods = ['card', 'sepa_debit', 'bancontact'];
         
         const paymentMethods = options.stripePaymentMethods?.length 
             ? options.stripePaymentMethods 
             : defaultPaymentMethods;
 
-        const customer = await api.createCustomer(this.providerId, {
+        log("Creating customer for user", this.user.id);
+        this.customer = await api.createCustomer(this.providerId, {
             user_id: this.user.id,
             payment_methods: paymentMethods
         });
 
-        if (!customer) {
-            throw new Error('Failed to create customer');
+        if (!this.customer) {
+            logError('Failed to create customer for user', this.user.id);
+            return;
         }
 
-        log('Customer created', customer);
-        return customer;
+        log('Customer created', this.customer);
     }
     
 
@@ -250,12 +251,16 @@ class StripeForm implements PaymentForm {
      */
     private initStripe(options?: PaymentProviderFormOptions): void {
         if (!this.stripe) {
-            logError('No stripe initialized')
+            logError('Failed to initialize Stripe', true)
+            this.displayError('Failed to initialize payment form. Please try again.')
+            this.setButtonState("error")
             return
         }
 
         if (!this.customer) {
-            logError('Customer not initialized')
+            logError('Failed to initialize Stripe, customer not initialized', true)
+            this.displayError('Failed to initialize payment form. Please try again.')
+            this.setButtonState("error")
             return
         }
 
@@ -308,9 +313,10 @@ class StripeForm implements PaymentForm {
 
         // Add a separate error event listener for loader errors
         paymentElement.on('loaderror', (event) => {
-            const displayError = document.querySelector(`#${this.elementIDs.error}`)
-            if (displayError && event.error) {
-                displayError.textContent = event.error.message || null;
+            if (event.error) {
+                logError("Failed to load payment form", event.error, true)
+                this.displayError("Failed to load payment form");
+                this.setButtonState("error")
             }
         });
     }
@@ -324,7 +330,7 @@ class StripeForm implements PaymentForm {
         const form = document.querySelector(`#${this.elementIDs.form}`)
 
         if (!form) {
-            logError("Payment form: no form provided")
+            logError("Payment form: no form provided", true)
             return
         }
 
@@ -332,26 +338,41 @@ class StripeForm implements PaymentForm {
             event.preventDefault()
             this.setButtonState("processing")
 
-            if (!this.stripe || !this.elements) {
-                logError("Stripe or elements not initialized")
+            if (!this.stripe) {
+                logError("Stripe not initialized", true)
+                this.displayError('Failed to initialize payment form. Please try again.')
                 return
             }
 
+            if (!this.elements) {
+                logError("Elements not initialized", true)
+                this.displayError('Failed to initialize payment form. Please try again.')
+                return
+            }
+
+            // Step 1: Confirm SetupIntent
+            const { error: setupError, setupIntent } = await this.stripe.confirmSetup({
+                elements: this.elements,
+                confirmParams: {
+                    return_url: this.ensureHttpsUrl(options?.successUrl || window.location.href),
+                },
+                redirect: 'if_required'
+            });
+
+            if (setupError) {
+                logError("Failed to confirm setup", setupError, true)
+                this.setButtonState("error")
+                this.displayError("Failed to process payment. Please try again.")
+                
+                this.formBuilder.emit("payment_failure", {
+                    paymentProvider: "stripe",
+                    event: { error: setupError }
+                })
+                return
+            }
+
+            // Step 2: Create subscription using the payment method
             try {
-                // Step 1: Confirm SetupIntent first
-                const { error: setupError, setupIntent } = await this.stripe.confirmSetup({
-                    elements: this.elements,
-                    confirmParams: {
-                        return_url: this.ensureHttpsUrl(options?.successUrl || window.location.href),
-                    },
-                    redirect: 'if_required'
-                });
-
-                if (setupError) {
-                    throw setupError;
-                }
-
-                // Step 2: Create subscription using the payment method
                 const paymentMethodId = setupIntent.payment_method as string;
                 await this.createSubscription(
                     this.currentProductId!, 
@@ -360,47 +381,64 @@ class StripeForm implements PaymentForm {
                     this.customer!.id, 
                     paymentMethodId
                 );
-
-                // Step 3: Confirm payment if needed (subscription returned client_secret)
-                if (this.subscription?.client_secret) {
-                    const { error: confirmError } = await this.stripe.confirmCardPayment(
-                        this.subscription.client_secret
-                    );
-                    if (confirmError) {
-                        throw confirmError;
-                    }
-                }
-
-                // Handle successful subscription
-                const deepLink = this.subscription!.deep_link;
-                if (deepLink) {
-                    setCookie(DeepLinkURL, deepLink, SelectedProductDuration);
-                }
-
-                setTimeout(() => {
-                    if (options?.onSuccess) {
-                        options.onSuccess()
-                    } else if (options?.successUrl && options.successUrl !== 'undefined') {
-                        document.location.href = options.successUrl;
-                    } else {
-                        document.location.href = config.baseSuccessURL + '/' + deepLink;
-                    }
-                }, config.redirectDelay);
-
             } catch (error) {
-                logError("Failed to process payment:", error)
-                this.setButtonState("ready")
-                
-                const errorElement = document.querySelector(`#${this.elementIDs.error}`)
-                if (errorElement) {
-                    errorElement.textContent = error instanceof Error ? error.message : "Failed to process payment. Please try again."
-                }
-                
+                logError("Subscription creation failed:", error)
+                this.setButtonState("error")
+                this.displayError("Failed to create subscription. Please try again.")
+
                 this.formBuilder.emit("payment_failure", {
                     paymentProvider: "stripe",
                     event: { error }
                 })
+                return
             }
+
+            if (!this.subscription) {
+                logError("Failed to create subscription")
+                this.setButtonState("error")
+                this.displayError("Failed to create subscription. Please try again.")
+                
+                this.formBuilder.emit("payment_failure", {
+                    paymentProvider: "stripe",
+                    event: { error: new Error("Failed to create subscription") }
+                })
+                return
+            }
+
+            // Step 3: Confirm payment if needed (subscription returned client_secret)
+            if (this.subscription.client_secret) {
+                const { error: confirmError } = await this.stripe.confirmCardPayment(
+                    this.subscription.client_secret
+                );
+                
+                if (confirmError) {
+                    logError("Failed to confirm card payment", confirmError, true)
+                    this.setButtonState("error")
+                    this.displayError("Failed to confirm payment. Please try again.")
+                    
+                    this.formBuilder.emit("payment_failure", {
+                        paymentProvider: "stripe",
+                        event: { error: confirmError }
+                    })
+                    return
+                }
+            }
+
+            // Handle successful subscription
+            const deepLink = this.subscription.deep_link;
+            if (deepLink) {
+                setCookie(DeepLinkURL, deepLink, SelectedProductDuration);
+            }
+
+            setTimeout(() => {
+                if (options?.onSuccess) {
+                    options.onSuccess()
+                } else if (options?.successUrl && options.successUrl !== 'undefined') {
+                    document.location.href = options.successUrl;
+                } else {
+                    document.location.href = config.baseSuccessURL + '/' + deepLink;
+                }
+            }, config.redirectDelay);
         })
     }
 
