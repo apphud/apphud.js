@@ -871,6 +871,23 @@ export default class ApphudSDK implements Apphud {
             const vars: NodeListOf<Element> = document.querySelectorAll(`[${VariableDataAttribute}]`);
             const upsellButton = document.querySelector(`[${UpsellButtonAttribute}]`);
 
+            if (upsellButton && !this.isUpsellPaywallShown) {
+                const upsellPlacementId = upsellButton.getAttribute(UpsellButtonAttribute);
+                if (upsellPlacementId) {
+                    const placement = this.findPlacementByID(upsellPlacementId);
+                    if (placement && placement.paywalls.length > 0) {
+                        const paywall = placement.paywalls[0];
+                        this.track("paywall_shown", {
+                            paywall_id: paywall.id,
+                            placement_id: placement.id,
+                            is_upsell: true
+                        }, {});
+                        this.isUpsellPaywallShown = true;
+                        log("Tracked upsell paywall shown event for placement:", upsellPlacementId);
+                    }
+                }
+            }
+
             vars.forEach(elm => {
                 const varName = elm.getAttribute(VariableDataAttribute)
 
@@ -901,23 +918,6 @@ export default class ApphudSDK implements Apphud {
                                         placement_id: placement.id
                                     }, {});
                                     this.isPaywallShown = true;
-                                }
-                            }
-
-                            // Handle upsell paywall shown tracking
-                            if (upsellButton && !this.isUpsellPaywallShown) {
-                                const upsellPlacementId = upsellButton.getAttribute(UpsellButtonAttribute);
-                                if (upsellPlacementId) {
-                                    const placement = this.findPlacementByID(upsellPlacementId);
-                                    if (placement && placement.paywalls.length > 0) {
-                                        const paywall = placement.paywalls[0];
-                                        this.track("paywall_shown", {
-                                            paywall_id: paywall.id,
-                                            placement_id: placement.id,
-                                            is_upsell: true
-                                        }, {});
-                                        this.isUpsellPaywallShown = true;
-                                    }
                                 }
                             }
                         }
@@ -1135,14 +1135,57 @@ export default class ApphudSDK implements Apphud {
     public async createUpsellSubscription(options?: UpsellSubscriptionOptions): Promise<boolean> {
         this.checkInitialization();
 
-        if (!this._currentPlacement || !this._currentPaywall || !this._currentBundle) {
+        const upsellButton = document.querySelector(`[${UpsellButtonAttribute}]`);
+        let upsellPlacementId: string | null = null;
+        
+        if (upsellButton) {
+            upsellPlacementId = upsellButton.getAttribute(UpsellButtonAttribute);
+            log("Found upsell button with placement ID:", upsellPlacementId);
+        }
+        
+        let placement = this._currentPlacement;
+        let paywall = this._currentPaywall;
+        let bundle = this._currentBundle;
+        let products = this._currentProducts;
+        
+        // If upsellPlacementId exists and is different from current placement
+        if (upsellPlacementId && 
+            (!placement || placement.identifier !== upsellPlacementId)) {
+            
+            log("Upsell placement is different from current placement, switching to upsell placement");
+            
+            const upsellPlacement = this.findPlacementByID(upsellPlacementId);
+            
+            if (!upsellPlacement || upsellPlacement.paywalls.length === 0) {
+                logError("Upsell placement not found or has no paywalls:", upsellPlacementId);
+                return false;
+            }
+            
+            placement = upsellPlacement;
+            paywall = upsellPlacement.paywalls[0];
+            bundle = paywall.items_v2[0];
+            
+            if (!bundle) {
+                logError("No product bundle found in upsell placement");
+                return false;
+            }
+            
+            const success = this.updateProductsAndProviders(bundle, this.user?.payment_providers || []);
+            if (!success) {
+                logError("Failed to set up payment providers for upsell bundle");
+                return false;
+            }
+            
+            products = this._currentProducts;
+        } else if (!placement || !paywall || !bundle) {
             logError("No current placement, paywall or bundle selected. Call selectPlacementProduct first.");
             return false;
         }
-
+        
+        // Track the checkout initiated event
         this.track("paywall_checkout_initiated", {
-            paywall_id: this._currentPaywall.id,
-            placement_id: this._currentPlacement.id,
+            paywall_id: paywall.id,
+            placement_id: placement.id,
             is_upsell: true
         }, {});
 
@@ -1166,7 +1209,7 @@ export default class ApphudSDK implements Apphud {
             }
 
             const paymentProvider = this.currentPaymentProviders.get(paymentProviderType as PaymentProviderKind);
-            const product = this._currentProducts.get(paymentProviderType as PaymentProviderKind);
+            const product = products.get(paymentProviderType as PaymentProviderKind);
 
             if (!paymentProvider || !product) {
                 logError("No payment provider or product available");
@@ -1174,11 +1217,11 @@ export default class ApphudSDK implements Apphud {
             }
 
             // Handle introductory offers
-            const introOffer = this._currentBundle.properties?.introductory_offer;
+            const introOffer = bundle.properties?.introductory_offer;
             const subscriptionPayload: any = {
                 product_id: product.base_plan_id,
-                paywall_id: this._currentPaywall.id,
-                placement_id: this._currentPlacement.id,
+                paywall_id: paywall.id,
+                placement_id: placement.id,
                 user_id: this.user.id,
                 upsell: true
             };
