@@ -1,4 +1,4 @@
-import { Apphud, AttributionData, Config, ApphudHash, LifecycleEventCallback, LifecycleEventName, PaymentProvider, PaymentProviderFormOptions, Paywall, Placement, Product, User, PaymentProviderKind, ProductBundle } from '../types';
+import { Apphud, AttributionData, Config, ApphudHash, LifecycleEventCallback, LifecycleEventName, PaymentProvider, PaymentProviderFormOptions, Paywall, Placement, Product, User, PaymentProviderKind, ProductBundle, UpsellSubscriptionOptions } from '../types';
 /**
  * The main interface for the Apphud SDK. This should be initialized
  * immediately when your app starts. Ensure that only a single instance
@@ -22,6 +22,7 @@ export default class ApphudSDK implements Apphud {
     private isInitialized;
     private isPaywallShown;
     private reportedPlacementErrors;
+    private isUpsellPaywallShown;
     constructor();
     private checkInitialization;
     /**
@@ -76,9 +77,8 @@ export default class ApphudSDK implements Apphud {
      * Save selected placement and bundle
      * @param placementID - identifier of placement
      * @param bundleIndex - index of product bundle in placement paywall
-     * @param initializePaymentForms - whether to initialize payment forms (default: true)
      */
-    selectPlacementProduct(placementID: string, bundleIndex: number, initializePaymentForms?: boolean): void;
+    selectPlacementProduct(placementID: string, bundleIndex: number): void;
     /**
      * Set current placement, paywall, product bundle and compatible product
      * @param placementID - placement identifier
@@ -215,5 +215,12 @@ export default class ApphudSDK implements Apphud {
      * @returns The success URL with deep link if available, or base success URL
      */
     getSuccessURL(): string;
+    /**
+     * Creates an upsell subscription using the current placement and bundle
+     * Uses the same payment provider as the original subscription
+     * @param options - Optional configuration for handling successful subscription
+     * @returns Promise<boolean> indicating success/failure
+     */
+    createUpsellSubscription(options?: UpsellSubscriptionOptions): Promise<boolean>;
 }
 //# sourceMappingURL=index.d.ts.map

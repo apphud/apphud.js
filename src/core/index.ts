@@ -10,7 +10,9 @@ import {
     StartAppVersionKey,
     UserCookieDuration,
     UserIdKey,
-    SelectedBundleIndex
+    SelectedBundleIndex,
+    UpsellButtonAttribute,
+    PaymentProviderKey
 } from './config/constants';
 import {
     Apphud, AttributionData,
@@ -31,7 +33,8 @@ import {
     Product,
     User,
     PaymentProviderKind,
-    ProductBundle
+    ProductBundle,
+    UpsellSubscriptionOptions
 } from '../types'
 
 import UserAgent from 'ua-parser-js'
@@ -60,6 +63,7 @@ export default class ApphudSDK implements Apphud {
     private isInitialized: boolean = false;
     private isPaywallShown: boolean = false;
     private reportedPlacementErrors: Set<string> = new Set();
+    private isUpsellPaywallShown: boolean = false;
     // private params = new URLSearchParams(window.location.search);
 
     constructor() {}
@@ -352,9 +356,8 @@ export default class ApphudSDK implements Apphud {
      * Save selected placement and bundle
      * @param placementID - identifier of placement
      * @param bundleIndex - index of product bundle in placement paywall
-     * @param initializePaymentForms - whether to initialize payment forms (default: true)
      */
-    public selectPlacementProduct(placementID: string, bundleIndex: number, initializePaymentForms: boolean = false): void {
+    public selectPlacementProduct(placementID: string, bundleIndex: number): void {
         this.checkInitialization();
 
         log("Save placement and bundle", placementID, bundleIndex);
@@ -384,27 +387,6 @@ export default class ApphudSDK implements Apphud {
 
         this.setCurrentItems(placementID, bundleIndex);
         setCookie(SelectedBundleIndex, `${placementID},${bundleIndex}`, SelectedProductDuration);
-        
-        if (initializePaymentForms) {
-            const formElements = {
-                stripe: document.getElementById('stripe-payment-element'),
-                paddle: document.getElementById('paddle-payment-element')
-            };
-            
-            Object.values(formElements).forEach(element => {
-                if (element) {
-                    element.innerHTML = '';
-                }
-            });
-            
-            const availableProducts = this._currentProducts;
-            log("Available products for providers:", availableProducts);
-            
-            availableProducts.forEach((product, provider) => {
-                log(`Initializing payment form for provider: ${provider}`);
-                this.paymentForm({ paymentProvider: provider });
-            });
-        }
         
         this.emit("product_changed", this.currentProduct());
     }
@@ -895,6 +877,24 @@ export default class ApphudSDK implements Apphud {
 
         this.ready((): void => {
             const vars: NodeListOf<Element> = document.querySelectorAll(`[${VariableDataAttribute}]`);
+            const upsellButton = document.querySelector(`[${UpsellButtonAttribute}]`);
+
+            if (upsellButton && !this.isUpsellPaywallShown) {
+                const upsellPlacementId = upsellButton.getAttribute(UpsellButtonAttribute);
+                if (upsellPlacementId) {
+                    const placement = this.findPlacementByID(upsellPlacementId);
+                    if (placement && placement.paywalls.length > 0) {
+                        const paywall = placement.paywalls[0];
+                        this.track("paywall_shown", {
+                            paywall_id: paywall.id,
+                            placement_id: placement.id,
+                            is_upsell: true
+                        }, {});
+                        this.isUpsellPaywallShown = true;
+                        log("Tracked upsell paywall shown event for placement:", upsellPlacementId);
+                    }
+                }
+            }
 
             vars.forEach(elm => {
                 const varName = elm.getAttribute(VariableDataAttribute)
@@ -905,25 +905,28 @@ export default class ApphudSDK implements Apphud {
                     log("Replace variable", varName, newVal)
 
                     if (newVal) {
-                        if (varName.endsWith("price") && !this.isPaywallShown) {
-                            const keyArr = varName.split(',').map(s => s.trim());
-                            let placementID: string | undefined;
-                            
-                            if (keyArr.length === 3) {
-                                placementID = keyArr[0];
-                            } else {
-                                const saved = this.getSavedPlacementBundleIndex();
-                                placementID = saved.placementID;
-                            }
+                        if (varName.endsWith("price")) {
+                            // Handle regular paywall shown tracking
+                            if (!this.isPaywallShown) {
+                                const keyArr = varName.split(',').map(s => s.trim());
+                                let placementID: string | undefined;
+                                
+                                if (keyArr.length === 3) {
+                                    placementID = keyArr[0];
+                                } else {
+                                    const saved = this.getSavedPlacementBundleIndex();
+                                    placementID = saved.placementID;
+                                }
 
-                            const placement = this.findPlacementByID(placementID!);
-                            if (placement && placement.paywalls.length > 0) {
-                                const paywall = placement.paywalls[0];
-                                this.track("paywall_shown", {
-                                    paywall_id: paywall.id,
-                                    placement_id: placement.id
-                                }, {});
-                                this.isPaywallShown = true;
+                                const placement = this.findPlacementByID(placementID!);
+                                if (placement && placement.paywalls.length > 0) {
+                                    const paywall = placement.paywalls[0];
+                                    this.track("paywall_shown", {
+                                        paywall_id: paywall.id,
+                                        placement_id: placement.id
+                                    }, {});
+                                    this.isPaywallShown = true;
+                                }
                             }
                         }
 
@@ -1135,5 +1138,151 @@ export default class ApphudSDK implements Apphud {
         
         const deepLink = this.getDeepLink();
         return deepLink ? `${config.baseSuccessURL}/${deepLink}` : config.baseSuccessURL;
+    }
+
+    /**
+     * Creates an upsell subscription using the current placement and bundle
+     * Uses the same payment provider as the original subscription
+     * @param options - Optional configuration for handling successful subscription
+     * @returns Promise<boolean> indicating success/failure
+     */
+    public async createUpsellSubscription(options?: UpsellSubscriptionOptions): Promise<boolean> {
+        this.checkInitialization();
+
+        const upsellButton = document.querySelector(`[${UpsellButtonAttribute}]`);
+        let upsellPlacementId: string | null = null;
+        
+        if (upsellButton) {
+            upsellPlacementId = upsellButton.getAttribute(UpsellButtonAttribute);
+            log("Found upsell button with placement ID:", upsellPlacementId);
+        }
+        
+        let placement = this._currentPlacement;
+        let paywall = this._currentPaywall;
+        let bundle = this._currentBundle;
+        let products = this._currentProducts;
+        
+        // If upsellPlacementId exists and is different from current placement
+        if (upsellPlacementId && 
+            (!placement || placement.identifier !== upsellPlacementId)) {
+            
+            log("Upsell placement is different from current placement, switching to upsell placement");
+            
+            const upsellPlacement = this.findPlacementByID(upsellPlacementId);
+            
+            if (!upsellPlacement || upsellPlacement.paywalls.length === 0) {
+                logError("Upsell placement not found or has no paywalls:", upsellPlacementId);
+                return false;
+            }
+            
+            placement = upsellPlacement;
+            paywall = upsellPlacement.paywalls[0];
+            bundle = paywall.items_v2[0];
+            
+            if (!bundle) {
+                logError("No product bundle found in upsell placement");
+                return false;
+            }
+            
+            const success = this.updateProductsAndProviders(bundle, this.user?.payment_providers || []);
+            if (!success) {
+                logError("Failed to set up payment providers for upsell bundle");
+                return false;
+            }
+            
+            products = this._currentProducts;
+        } else if (!placement || !paywall || !bundle) {
+            logError("No current placement, paywall or bundle selected. Call selectPlacementProduct first.");
+            return false;
+        }
+        
+        // Track the checkout initiated event
+        this.track("paywall_checkout_initiated", {
+            paywall_id: paywall.id,
+            placement_id: placement.id,
+            is_upsell: true
+        }, {});
+
+        try {
+            if (!this.user?.id) {
+                logError("No user ID available");
+                return false;
+            }
+
+            let paymentProviderType = getCookie(PaymentProviderKey);
+            
+            if (!paymentProviderType) {
+                const availableProviders = Array.from(this.currentPaymentProviders.keys());
+                if (availableProviders.length > 0) {
+                    paymentProviderType = availableProviders[0];
+                    log("No payment provider cookie found, using first available provider:", paymentProviderType);
+                } else {
+                    logError("No payment providers available");
+                    return false;
+                }
+            }
+
+            const paymentProvider = this.currentPaymentProviders.get(paymentProviderType as PaymentProviderKind);
+            const product = products.get(paymentProviderType as PaymentProviderKind);
+
+            if (!paymentProvider || !product) {
+                logError("No payment provider or product available");
+                return false;
+            }
+
+            // Handle introductory offers
+            const introOffer = bundle.properties?.introductory_offer;
+            const subscriptionPayload: any = {
+                product_id: product.base_plan_id,
+                paywall_id: paywall.id,
+                placement_id: placement.id,
+                user_id: this.user.id,
+                upsell: true
+            };
+
+            if (introOffer) {
+                switch (paymentProviderType) {
+                    case "stripe":
+                        if (introOffer.stripe_free_trial_days) {
+                            subscriptionPayload.trial_period_days = parseInt(introOffer.stripe_free_trial_days);
+                        }
+                        if (introOffer.stripe_coupon_id) {
+                            subscriptionPayload.discount_id = introOffer.stripe_coupon_id;
+                        }
+                        break;
+                    case "paddle":
+                        if (introOffer.paddle_discount_id) {
+                            subscriptionPayload.discount_id = introOffer.paddle_discount_id;
+                        }
+                        break;
+                }
+            }
+
+            const subscription = await api.createSubscription(paymentProvider.id, subscriptionPayload);
+
+            if (!subscription) {
+                throw new Error("Failed to create subscription");
+            }
+
+            if (subscription.deep_link) {
+                setCookie(DeepLinkURL, subscription.deep_link, SelectedProductDuration);
+            }
+
+            setTimeout(() => {
+                if (options?.onSuccess) {
+                    options.onSuccess();
+                } else if (options?.successUrl && options.successUrl !== 'undefined') {
+                    document.location.href = options.successUrl;
+                } else {
+                    console.log("success")
+                    document.location.href = config.baseSuccessURL + '/' + subscription.deep_link;
+                }
+            }, config.redirectDelay);
+
+            return true;
+        } catch (error) {
+            logError("Failed to create upsell subscription:", error);
+            return false;
+        }
     }
 }

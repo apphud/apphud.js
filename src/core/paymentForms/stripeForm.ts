@@ -3,6 +3,7 @@ import api from '../api'
 import {
     DeepLinkURL,
     SelectedProductDuration,
+    PaymentProviderKey
 } from "../config/constants"
 import {CustomerSetup, PaymentForm, PaymentProviderFormOptions, Subscription, User, StripeSubscriptionOptions} from "../../types"
 import {
@@ -429,7 +430,9 @@ class StripeForm implements PaymentForm {
             if (deepLink) {
                 setCookie(DeepLinkURL, deepLink, SelectedProductDuration);
             }
-
+                
+            setCookie(PaymentProviderKey, "stripe", SelectedProductDuration);
+                
             setTimeout(() => {
                 if (options?.onSuccess) {
                     options.onSuccess()
