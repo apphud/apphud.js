@@ -62,6 +62,7 @@ export default class ApphudSDK implements Apphud {
     private eventQueue: EventData[] = []
     private isInitialized: boolean = false;
     private isPaywallShown: boolean = false;
+    private reportedPlacementErrors: Set<string> = new Set();
     private isUpsellPaywallShown: boolean = false;
     // private params = new URLSearchParams(window.location.search);
 
@@ -69,7 +70,7 @@ export default class ApphudSDK implements Apphud {
 
     private checkInitialization(): void {
         if (!this.isInitialized) {
-            logError("Apphud SDK not initialized");
+            logError("Apphud SDK not initialized", true);
         }
     }
 
@@ -87,7 +88,7 @@ export default class ApphudSDK implements Apphud {
         ];
 
         if (placeholderKeys.includes(options.apiKey)) {
-            logError("You did not provide API Key for Web SDK. Check script tags inside body tag. Learn more: https://docs.apphud.com/docs/flow-builder");
+            logError("You did not provide API Key for Web SDK. Check script tags inside body tag. Learn more: https://docs.apphud.com/docs/flow-builder", true);
             return;
         }
 
@@ -276,7 +277,8 @@ export default class ApphudSDK implements Apphud {
                 log("Looking for specified payment provider:", formOptions.paymentProvider);
                 targetProvider = this.currentPaymentProviders.get(formOptions.paymentProvider);
                 if (!targetProvider) {
-                    logError(`Requested payment provider ${formOptions.paymentProvider} not available`);
+                    const errorMessage = `Requested payment provider ${formOptions.paymentProvider} not available`;
+                    logError(errorMessage, true);
                     // Emit provider not found event
                     this.emit(`${formOptions.paymentProvider}_not_found` as LifecycleEventName, {
                         requestedProvider: formOptions.paymentProvider,
@@ -291,7 +293,7 @@ export default class ApphudSDK implements Apphud {
             }
 
             if (!targetProvider) {
-                logError("No payment provider available");
+                logError("No payment provider available", true);
                 return;
             }
 
@@ -299,17 +301,17 @@ export default class ApphudSDK implements Apphud {
             const targetProduct = this.currentProductForProvider(targetProvider.kind);
 
             if (!targetProduct) {
-                logError("Payment form: product is required");
+                logError("Payment form: product is required", true);
                 return;
             }
 
             if (!this.currentPaywall()) {
-                logError("Payment form: paywall is required");
+                logError("Payment form: paywall is required", true);
                 return;
             }
 
             if (!this.currentPlacement()) {
-                logError("Payment form: placement is required");
+                logError("Payment form: placement is required", true);
                 return;
             }
 
@@ -318,12 +320,12 @@ export default class ApphudSDK implements Apphud {
             const productId = product || targetProduct.base_plan_id;
 
             if (!productId) {
-                logError("Unable to initialize the payment form because the product is absent.");
+                logError("Unable to initialize the payment form because the product is absent.", true);
                 return;
             }
 
             if (!this.user) {
-                logError("Payment form: no user");
+                logError("Payment form: no user", true);
                 return;
             }
 
@@ -340,7 +342,7 @@ export default class ApphudSDK implements Apphud {
                     if (this._currentPaywall !== undefined && this._currentPlacement !== undefined) {
                         this.track("paywall_checkout_initiated", { paywall_id: this._currentPaywall.id, placement_id: this._currentPlacement.id }, {})
                     } else {
-                        logError('Unable to track the "paywall_checkout_initiated" event: either paywall_id or placement_id is empty.')
+                        logError('Unable to track the "paywall_checkout_initiated" event: either paywall_id or placement_id is empty.', true)
                     }
                 }
             });
@@ -362,21 +364,24 @@ export default class ApphudSDK implements Apphud {
 
         const placement = this.findPlacementByID(placementID);
         if (!placement || placement.paywalls.length === 0) {
-            logError("No placement or paywall found for ID:", placementID);
+            const errorMessage = "No placement or paywall found for ID: " + placementID;
+            logError(errorMessage, true);
             return;
         }
 
         const paywall = placement.paywalls[0];
         const selectedBundle = paywall.items_v2[bundleIndex];
         if (!selectedBundle) {
-            logError("No product bundle found at index:", bundleIndex);
+            const errorMessage = "No product bundle found at index: " + bundleIndex;
+            logError(errorMessage, true);
             return;
         }
 
         const success = this.updateProductsAndProviders(selectedBundle, this.user?.payment_providers || []);
         
         if (!success) {
-            logError("Failed to set up payment providers for selected bundle");
+            const errorMessage = "Failed to set up payment providers for selected bundle";
+            logError(errorMessage, true);
             return;
         }
 
@@ -419,7 +424,8 @@ export default class ApphudSDK implements Apphud {
                     );
 
                     if (!hasPriceMacros) {
-                        logError(`Placement with identifier "${placementID}" was requested and found, but price macros are missing. Learn how to set up macros here: https://docs.apphud.com/docs/configure-web-placements#setting-up-product-macros`);
+                        const errorMessage = `Placement with identifier "${placementID}" was requested and found, but price macros are missing. Learn how to set up macros here: https://docs.apphud.com/docs/configure-web-placements#setting-up-product-macros`;
+                        logError(errorMessage, true);
                     }
                 }
                 
@@ -434,7 +440,7 @@ export default class ApphudSDK implements Apphud {
                         log("Current payment providers", this.currentPaymentProviders);
                     }
                 } else {
-                    logError("Bundle contains no products");
+                    logError("Bundle contains no products", true);
                 }
             }
         }
@@ -464,12 +470,14 @@ export default class ApphudSDK implements Apphud {
                 this._currentProducts.set(requiredStore, product);
                 this.currentPaymentProviders.set(requiredStore, compatibleProvider);
             } else {
-                logError(`No compatible payment provider found for store type: ${requiredStore}`);
+                const errorMessage = `No compatible payment provider found for store type: ${requiredStore}`;
+                logError(errorMessage, true);
             }
         });
 
         if (this.currentPaymentProviders.size === 0) {
-            logError("No compatible payment providers found for any products in the bundle");
+            const errorMessage = "No compatible payment providers found for any products in the bundle";
+            logError(errorMessage, true);
             return false;
         }
 
@@ -513,7 +521,7 @@ export default class ApphudSDK implements Apphud {
             const otherParams = Object.entries(urlParams)
                 .filter(([key]) => !attributionIds.includes(key))
                 .reduce((acc, [key, value]) => {
-                    acc[`url_param_${key}`] = value;
+                    acc[key] = value;
                     return acc;
                 }, {} as Record<string, string | string[]>)
 
@@ -1015,8 +1023,14 @@ export default class ApphudSDK implements Apphud {
         const placement = this.placements.find(elm => elm.identifier === id);
         
         if (!placement) {
-            const existingIdentifiers = this.placements.map(p => p.identifier);
-            console.warn(`Placement with identifier "${id}" was requested, but only these placements were found: [${existingIdentifiers.join(', ')}].`);
+            if (!this.reportedPlacementErrors.has(id)) {
+                const existingIdentifiers = this.placements.map(p => p.identifier);
+                const errorMessage = `Requested placement with identifier "${id}" but only these placements were found: [${existingIdentifiers.join(', ')}].`;
+                
+                this.reportedPlacementErrors.add(id);
+                
+                logError(errorMessage, true);
+            }
         }
         
         return placement;

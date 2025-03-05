@@ -1,5 +1,6 @@
 import {config} from "../core/config/config";
 import {ApphudFunc, ApphudHash} from "../types";
+import api from "../core/api";
 
 export const canStringify: boolean = typeof (JSON) !== "undefined" && typeof (JSON.stringify) !== "undefined";
 
@@ -13,8 +14,36 @@ export const log = (...message: any[]): void => {
     }
 }
 
-export const logError = (...message: any[]): void => {
-    window.console.error(...message);
+/**
+ * Log error to console and optionally report to backend
+ * @param args - Error message(s) to log and potentially report, with an optional boolean at the end to control reporting
+ */
+export const logError = (...args: any[]): void => {
+    // Check if the last argument is a boolean indicating whether to report to backend
+    let shouldReport = false;
+    if (args.length > 0 && typeof args[args.length - 1] === 'boolean') {
+        shouldReport = args.pop() as boolean;
+    }
+    
+    window.console.error(...args);
+    
+    if (shouldReport && api.reportError) {
+        // Convert messages to a single string for reporting
+        const errorMessage = args.map(item => {
+            if (typeof item === 'object') {
+                try {
+                    return JSON.stringify(item);
+                } catch (e) {
+                    return String(item);
+                }
+            }
+            return String(item);
+        }).join(' ');
+        
+        api.reportError(errorMessage).catch(error => {
+            console.error('Failed to report error to backend:', error);
+        });
+    }
 }
 
 const cleanObject = (obj: ApphudHash): ApphudHash => {

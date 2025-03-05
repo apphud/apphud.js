@@ -32,7 +32,7 @@ export interface PaymentProviderFormOptions {
     stripePaymentMethods?: string[]
     paddleSettings?: PaddleSettingsOptions
     id?: string
-    buttonStateSetter?: (state: "loading" | "ready" | "processing") => void
+    buttonStateSetter?: (state: "loading" | "ready" | "processing" | "error") => void
 }
 
 export interface Country {
