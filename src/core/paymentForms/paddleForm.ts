@@ -18,16 +18,25 @@ class PaddleForm implements PaymentForm {
 
     private async initializePaddleInstance(): Promise<void> {
         try {
+            if (!this.provider.token) {
+                throw new Error("Missing Paddle provider token");
+            }
+            
             const environment = config.debug || this.user.is_sandbox ? "sandbox" : "production"
             this.paddle = await initializePaddle({
                 environment,
-                token: this.provider.token || "",
+                token: this.provider.token,
                 eventCallback: (event: PaddleEventData) => {
                     log("Paddle event received:", event.name)
                     this.handlePaddleEvent(event, this.currentOptions)
                 }
             })
-            log("Paddle initialized successfully")
+            
+            if (this.paddle) {
+                log("Paddle initialized successfully")
+            } else {
+                throw new Error("Paddle not initialized")
+            }
         } catch (error) {
             logError("Failed to initialize Paddle", error, true)
         }
