@@ -362,7 +362,7 @@ class StripeForm implements PaymentForm {
 
             if (setupError) {
                 logError("Failed to confirm setup", setupError, true)
-                this.setButtonState("error")
+                this.setButtonState("ready")
                 this.displayError("Failed to process payment. Please try again.")
                 
                 this.formBuilder.emit("payment_failure", {
