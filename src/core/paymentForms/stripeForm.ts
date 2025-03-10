@@ -344,7 +344,7 @@ class StripeForm implements PaymentForm {
 
             if (setupError) {
                 logError("Failed to confirm setup", setupError, true)
-                this.setButtonState("error")
+                this.setButtonState("ready")
                 this.displayError("Failed to process payment. Please try again.")
 
                 this.formBuilder.emit("payment_failure", {
@@ -366,7 +366,7 @@ class StripeForm implements PaymentForm {
                 );
             } catch (error) {
                 logError("Subscription creation failed:", error)
-                this.setButtonState("error")
+                this.setButtonState("ready")
                 this.displayError("Failed to create subscription. Please try again.")
 
                 this.formBuilder.emit("payment_failure", {
@@ -378,7 +378,7 @@ class StripeForm implements PaymentForm {
 
             if (!this.subscription) {
                 logError("Failed to create subscription")
-                this.setButtonState("error")
+                this.setButtonState("ready")
                 this.displayError("Failed to create subscription. Please try again.")
 
                 this.formBuilder.emit("payment_failure", {
@@ -396,7 +396,7 @@ class StripeForm implements PaymentForm {
 
                 if (confirmError) {
                     logError("Failed to confirm card payment", confirmError, true)
-                    this.setButtonState("error")
+                    this.setButtonState("ready")
                     this.displayError("Failed to confirm payment. Please try again.")
                     
                     this.formBuilder.emit("payment_failure", {
