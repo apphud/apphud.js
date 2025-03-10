@@ -502,7 +502,7 @@ export default class ApphudSDK implements Apphud {
 
         this.ready((): void => {
             const urlParams = this.getQueryParamsAsJson()
-            const attributionIds = ['ttclid', 'fbclid']
+            const attributionIds = ['ttclid', 'fbclid', 'gclid']
             
             attributionIds.forEach(id => {
                 if (urlParams[id]) {
