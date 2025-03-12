@@ -233,7 +233,8 @@ class StripeForm implements PaymentForm {
         log("Creating customer for user", this.user.id);
         this.customer = await api.createCustomer(this.providerId, {
             user_id: this.user.id,
-            payment_methods: paymentMethods
+            payment_methods: paymentMethods,
+            debug: config.debug
         });
 
         if (!this.customer) {
