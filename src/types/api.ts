@@ -35,4 +35,5 @@ export interface CustomerSetup {
 export interface CustomerParams {
     user_id: string
     payment_methods?: string[]
+    debug?: boolean
 }
