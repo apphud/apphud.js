@@ -1,5 +1,7 @@
 export const StartAppVersionKey: string = "aph_start_version";
 export const UserIdKey: string = "aph_user_id";
+export const ProductionUserIdKey: string = "aph_production_user_id";
+export const DebugUserIdKey: string = "aph_debug_user_id";
 export const EventsKey: string = "aph_events";
 export const UserCookieDuration: number = 2 * 365 * 24 * 60
 export const VariableDataAttribute: string = "data-aph-var";

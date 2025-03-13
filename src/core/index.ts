@@ -10,6 +10,8 @@ import {
     StartAppVersionKey,
     UserCookieDuration,
     UserIdKey,
+    ProductionUserIdKey,
+    DebugUserIdKey,
     SelectedBundleIndex
 } from './config/constants';
 import {
@@ -144,15 +146,24 @@ export default class ApphudSDK implements Apphud {
     }
 
     /**
-     * Get current User ID from cookies
+     * Get current User ID from cookies based on environment
      */
     public getUserID(): string | undefined {
         this.checkInitialization();
-
-        const uid = getCookie(UserIdKey);
-
-        if (uid)
-            return uid
+        
+        const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
+        
+        let uid = getCookie(cookieKey);
+        
+        if (!uid) {
+            const legacyUid = getCookie(UserIdKey);
+            if (legacyUid) {
+                setCookie(cookieKey, legacyUid, UserCookieDuration);
+                uid = legacyUid;
+            }
+        }
+        
+        return uid || undefined;
     }
 
     /**
@@ -161,6 +172,8 @@ export default class ApphudSDK implements Apphud {
     public reset(): boolean {
         this.checkInitialization();
         
+        deleteCookie(ProductionUserIdKey);
+        deleteCookie(DebugUserIdKey);
         deleteCookie(UserIdKey);
         deleteCookie(EventsKey);
 
@@ -739,7 +752,8 @@ export default class ApphudSDK implements Apphud {
                 setCookie(StartAppVersionKey, config.websiteVersion, UserCookieDuration); // 2 years
             }
 
-            setCookie(UserIdKey, this.userID, UserCookieDuration);
+            const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
+            setCookie(cookieKey, this.userID, UserCookieDuration);
         }
 
         let data = this.userParams({})
