@@ -15,6 +15,7 @@ import {log} from "../../utils";
 
 class FormBuilder implements PaymentFormBuilder {
     private events: LifecycleEvents = {}
+    private currentForm: PaymentForm | null = null;
 
     constructor(private provider: PaymentProvider, private user: User) {}
 
@@ -32,6 +33,8 @@ class FormBuilder implements PaymentFormBuilder {
         options: PaymentProviderFormOptions = {},
         bundle?: ProductBundle
     ): Promise<void> {
+        this.cleanup();
+        
         let form: PaymentForm
 
         const introOffer = bundle?.properties?.introductory_offer;
@@ -61,6 +64,8 @@ class FormBuilder implements PaymentFormBuilder {
                 throw new Error("Unsupported type " + this.provider.kind)
         }
 
+        this.currentForm = form;
+
         await form.show(
             productId, 
             paywallId, 
@@ -68,6 +73,19 @@ class FormBuilder implements PaymentFormBuilder {
             options, 
             subscriptionOptions
         )
+    }
+
+    /**
+     * Clean up any existing form event listeners
+     */
+    public cleanup(): void {
+        if (this.currentForm) {
+            if (this.currentForm instanceof StripeForm) {
+                this.currentForm.cleanupFormListeners();
+            }
+            
+            this.currentForm = null;
+        }
     }
 
     /**

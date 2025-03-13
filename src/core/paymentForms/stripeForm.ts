@@ -49,6 +49,8 @@ class StripeForm implements PaymentForm {
     private subscriptionOptions?: StripeSubscriptionOptions;
     private elementIDs: { [key: string]: string } = ELEMENT_IDS.old;
     private buttonStateSetter?: (state: "loading" | "ready" | "processing" | "error") => void | undefined;
+    private formElement: HTMLElement | null = null;
+    private submitHandler: ((event: Event) => Promise<void>) | null = null;
 
     constructor(private user: User, private providerId: string, private accountId: string, private formBuilder: FormBuilder) {
         documentReady(async () => {
@@ -329,14 +331,18 @@ class StripeForm implements PaymentForm {
      * @private
      */
     private async setupForm(options?: PaymentProviderFormOptions): Promise<void> {
+        this.cleanupFormListeners();
+        
         const form = document.querySelector(`#${this.elementIDs.form}`)
 
         if (!form) {
             logError("Payment form: no form provided", true)
             return
         }
-
-        form.addEventListener('submit', async (event) => {
+        
+        this.formElement = form as HTMLElement;
+        
+        this.submitHandler = async (event) => {
             event.preventDefault()
             this.setButtonState("processing")
 
@@ -443,7 +449,19 @@ class StripeForm implements PaymentForm {
                     document.location.href = config.baseSuccessURL + '/' + deepLink;
                 }
             }, config.redirectDelay);
-        })
+        };
+        
+        this.formElement.addEventListener('submit', this.submitHandler);
+    }
+
+    /**
+     * Clean up form event listeners to prevent duplicates
+     */
+    public cleanupFormListeners(): void {
+        if (this.formElement && this.submitHandler) {
+            this.formElement.removeEventListener('submit', this.submitHandler);
+            this.submitHandler = null;
+        }
     }
 
     // Add this helper method to ensure the URL has a scheme

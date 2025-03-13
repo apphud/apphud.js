@@ -20,6 +20,8 @@ declare class StripeForm implements PaymentForm {
     private subscriptionOptions?;
     private elementIDs;
     private buttonStateSetter?;
+    private formElement;
+    private submitHandler;
     constructor(user: User, providerId: string, accountId: string, formBuilder: FormBuilder);
     private injectStyles;
     private displayError;
@@ -56,6 +58,10 @@ declare class StripeForm implements PaymentForm {
      * @private
      */
     private setupForm;
+    /**
+     * Clean up form event listeners to prevent duplicates
+     */
+    cleanupFormListeners(): void;
     private ensureHttpsUrl;
 }
 export default StripeForm;

@@ -3,6 +3,7 @@ declare class FormBuilder implements PaymentFormBuilder {
     private provider;
     private user;
     private events;
+    private currentForm;
     constructor(provider: PaymentProvider, user: User);
     /**
      * Show form on page
@@ -12,6 +13,10 @@ declare class FormBuilder implements PaymentFormBuilder {
      * @param options - Form options. Success URL / Failure URL
      */
     show(productId: string, paywallId: string | undefined, placementId: string | undefined, options?: PaymentProviderFormOptions, bundle?: ProductBundle): Promise<void>;
+    /**
+     * Clean up any existing form event listeners
+     */
+    cleanup(): void;
     /**
      * Track event
      * @param eventName - event name

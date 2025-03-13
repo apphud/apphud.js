@@ -23,6 +23,7 @@ export default class ApphudSDK implements Apphud {
     private isPaywallShown;
     private reportedPlacementErrors;
     private isUpsellPaywallShown;
+    private currentFormBuilder;
     constructor();
     private checkInitialization;
     /**
