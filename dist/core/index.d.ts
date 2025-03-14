@@ -44,7 +44,7 @@ export default class ApphudSDK implements Apphud {
      */
     getDeepLink(): string | null;
     /**
-     * Get current User ID from cookies
+     * Get current User ID from cookies based on environment
      */
     getUserID(): string | undefined;
     /**

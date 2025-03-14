@@ -1,5 +1,6 @@
 export declare const StartAppVersionKey: string;
-export declare const UserIdKey: string;
+export declare const ProductionUserIdKey: string;
+export declare const DebugUserIdKey: string;
 export declare const EventsKey: string;
 export declare const UserCookieDuration: number;
 export declare const VariableDataAttribute: string;
