@@ -268,9 +268,4 @@ export interface CustomerData {
     page_url: string
     user_agent: string
 }
-export type LifecycleEventName = "payment_form_initialized" | "ready" | "payment_form_ready" | "payment_success" | "payment_failure" | "product_changed" | "payment_provider_changed"
-
-export interface UpsellSubscriptionOptions {
-    successUrl?: string;
-    onSuccess?: () => void;
-}
+export type LifecycleEventName = "payment_form_initialized" | "ready" | "payment_form_ready" | "payment_success" | "payment_failure" | "product_changed" | "payment_provider_changed" | "upsell_initiated" | "upsell_success" | "upsell_failure"
