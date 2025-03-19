@@ -40,6 +40,7 @@ import {
 
 import UserAgent from 'ua-parser-js'
 import FormBuilder from "./paymentForms/formBuilder";
+import UpsellBuilder from "./upsell/upsellBuilder";
 
 /**
  * The main interface for the Apphud SDK. This should be initialized
@@ -1166,45 +1167,24 @@ export default class ApphudSDK implements Apphud {
             log("Found upsell button with placement ID:", upsellPlacementId);
         }
         
-        let placement = this._currentPlacement;
-        let paywall = this._currentPaywall;
-        let bundle = this._currentBundle;
-        let products = this._currentProducts;
-        
         // If upsellPlacementId exists and is different from current placement
         if (upsellPlacementId && 
-            (!placement || placement.identifier !== upsellPlacementId)) {
+            (!this._currentPlacement || this._currentPlacement.identifier !== upsellPlacementId)) {
             
             log("Upsell placement is different from current placement, switching to upsell placement");
-            
-            const upsellPlacement = this.findPlacementByID(upsellPlacementId);
-            
-            if (!upsellPlacement || upsellPlacement.paywalls.length === 0) {
-                logError("Upsell placement not found or has no paywalls:", upsellPlacementId);
-                return false;
-            }
-            
-            placement = upsellPlacement;
-            paywall = upsellPlacement.paywalls[0];
-            bundle = paywall.items_v2[0];
-            
-            if (!bundle) {
-                logError("No product bundle found in upsell placement");
-                return false;
-            }
-            
-            const success = this.updateProductsAndProviders(bundle, this.user?.payment_providers || []);
-            if (!success) {
-                logError("Failed to set up payment providers for upsell bundle");
-                return false;
-            }
-            
-            products = this._currentProducts;
-        } else if (!placement || !paywall || !bundle) {
-            logError("No current placement, paywall or bundle selected. Call selectPlacementProduct first.");
+            this.selectPlacementProduct(upsellPlacementId, 0);
+        }
+
+        const placement = this._currentPlacement;
+        const paywall = this._currentPaywall;
+        const bundle = this._currentBundle;
+        const products = this._currentProducts;
+
+        if (!placement || !paywall || !bundle) {
+            logError("No valid placement, paywall or bundle available. Call selectPlacementProduct first.");
             return false;
         }
-        
+
         // Track the checkout initiated event
         this.track("paywall_checkout_initiated", {
             paywall_id: paywall.id,
@@ -1239,58 +1219,31 @@ export default class ApphudSDK implements Apphud {
                 return false;
             }
 
-            // Handle introductory offers
-            const introOffer = bundle.properties?.introductory_offer;
-            const subscriptionPayload: any = {
-                product_id: product.base_plan_id,
-                paywall_id: paywall.id,
-                placement_id: placement.id,
-                user_id: this.user.id,
-                upsell: true
-            };
-
-            if (introOffer) {
-                switch (paymentProviderType) {
-                    case "stripe":
-                        if (introOffer.stripe_free_trial_days) {
-                            subscriptionPayload.trial_period_days = parseInt(introOffer.stripe_free_trial_days);
-                        }
-                        if (introOffer.stripe_coupon_id) {
-                            subscriptionPayload.discount_id = introOffer.stripe_coupon_id;
-                        }
-                        break;
-                    case "paddle":
-                        if (introOffer.paddle_discount_id) {
-                            subscriptionPayload.discount_id = introOffer.paddle_discount_id;
-                        }
-                        break;
-                }
-            }
-
-            const subscription = await api.createSubscription(paymentProvider.id, subscriptionPayload);
-
-            if (!subscription) {
-                throw new Error("Failed to create subscription");
-            }
-
-            if (subscription.deep_link) {
-                setCookie(DeepLinkURL, subscription.deep_link, SelectedProductDuration);
-            }
-
-            setTimeout(() => {
-                if (options?.onSuccess) {
-                    options.onSuccess();
-                } else if (options?.successUrl && options.successUrl !== 'undefined') {
-                    document.location.href = options.successUrl;
-                } else {
-                    console.log("success")
-                    document.location.href = config.baseSuccessURL + '/' + subscription.deep_link;
-                }
-            }, config.redirectDelay);
-
-            return true;
+            const upsellBuilder = new UpsellBuilder(
+                paymentProvider,
+                this.user,
+                paywall.id,
+                placement.id,
+                bundle,
+                product.base_plan_id
+            );
+            
+            const upsellEvents: LifecycleEventName[] = [
+                "upsell_initiated", 
+                "upsell_success", 
+                "upsell_failure"
+            ];
+            
+            upsellEvents.forEach(eventName => {
+                upsellBuilder.on(eventName, (event) => {
+                    this.emit(eventName, event);
+                });
+            });
+            
+            return await upsellBuilder.process(options);
+            
         } catch (error) {
-            logError("Failed to create upsell subscription:", error);
+            logError("Failed to create upsell subscription:", error, true);
             return false;
         }
     }

@@ -58,4 +58,14 @@ export interface StripeSubscriptionOptions {
 export interface PaddleSubscriptionOptions {
     discountId?: string;
 }
+export interface UpsellSubscriptionOptions {
+    successUrl?: string;
+    onSuccess?: () => void;
+    paddleSettings?: PaddleSettingsOptions;
+}
+export interface IntroductoryOffer {
+    stripe_free_trial_days?: string;
+    stripe_coupon_id?: string;
+    paddle_discount_id?: string;
+}
 //# sourceMappingURL=paymentForm.d.ts.map

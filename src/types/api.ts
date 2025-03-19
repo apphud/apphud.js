@@ -25,6 +25,8 @@ export interface Subscription {
     client_secret?: string
     deep_link?: string
     customer_id?: string
+    auth_token?: string
+    payment_method?: string
 }
 
 export interface CustomerSetup {
