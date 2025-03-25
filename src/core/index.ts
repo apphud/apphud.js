@@ -169,6 +169,10 @@ export default class ApphudSDK implements Apphud {
     public getUserID(): string | undefined {
         this.checkInitialization();
 
+        if (this.userID && config.disableCookies) {
+            return this.userID;
+        }
+
         const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
         const uid = getCookie(cookieKey);
         
@@ -815,12 +819,14 @@ export default class ApphudSDK implements Apphud {
         if (!this.userID) {
             this.userID = u.generateId();
 
-            if (!getCookie(StartAppVersionKey)) {
-                setCookie(StartAppVersionKey, config.websiteVersion, UserCookieDuration); // 2 years
-            }
+            if (!config.disableCookies) {
+                if (!getCookie(StartAppVersionKey)) {
+                    setCookie(StartAppVersionKey, config.websiteVersion, UserCookieDuration); // 2 years
+                }
 
-            const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
-            setCookie(cookieKey, this.userID, UserCookieDuration);
+                const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
+                setCookie(cookieKey, this.userID, UserCookieDuration);
+            }
         }
 
         let data = this.userParams({})

@@ -225,6 +225,7 @@ export type Config = {
     headers: HeadersInit
     stripeLiveKey: string
     stripeTestKey: string
+    disableCookies: boolean
 }
 
 export interface EventData {
