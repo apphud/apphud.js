@@ -552,16 +552,19 @@ export default class ApphudSDK implements Apphud {
             if (typeof(window.fbq) !== 'undefined') {
                 const fbp = getCookie('_fbp')
                 const fbc = getCookie('_fbc')
+                const fbExternalIdSent = getCookie('apphud_fb_external_id_sent')
                 
                 if (fbp) queryParams.append('fbp', fbp)
                 if (fbc) queryParams.append('fbc', fbc)
 
-                if (this.hashedUserID) {
+                if (this.hashedUserID && !fbExternalIdSent) {
                     console.log('set external_id to fb: ', this.hashedUserID);
 
                     window.fbq('trackCustom', 'ApphudInit', {
                         external_id: this.hashedUserID,
                     })
+                    
+                    setCookie('apphud_fb_external_id_sent', 'true', UserCookieDuration);
                 }
             }
 
