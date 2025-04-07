@@ -8,6 +8,11 @@ export declare const log: (...message: any[]) => void;
 export declare const logError: (...args: any[]) => void;
 export declare const documentReady: (callback: ApphudFunc) => void;
 export declare const generateSHA256: (input: any) => Promise<string>;
+/**
+ * Get Amplitude device ID if available
+ * @returns Amplitude device ID or null if not available
+ */
+export declare const getAmplitudeId: () => string | null;
 declare const _default: {
     sleep: (ms: number) => Promise<void>;
     cleanObject: (obj: ApphudHash) => ApphudHash;
@@ -29,6 +34,7 @@ declare const _default: {
     isStripeAvailable: () => boolean;
     isPaddleAvailable: () => boolean;
     generateSHA256: (input: any) => Promise<string>;
+    getAmplitudeId: () => string | null;
 };
 export default _default;
 //# sourceMappingURL=index.d.ts.map

@@ -18,6 +18,10 @@ export interface SubscriptionParams {
     payment_method_id?: string;
     trial_period_days?: number;
     discount_id?: string;
+    metadata?: {
+        amplitude_id?: string | null;
+        [key: string]: any;
+    };
 }
 export interface Subscription {
     id: string;

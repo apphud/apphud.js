@@ -1,4 +1,4 @@
-import {log, logError} from "../../utils";
+import {log, logError, getAmplitudeId} from "../../utils";
 import {initializePaddle, Paddle, CheckoutOpenOptions, PaddleEventData, DisplayMode, AvailablePaymentMethod, Variant} from '@paddle/paddle-js'
 import {PaymentForm, PaymentProviderFormOptions, User, PaymentProvider, Subscription, PaddleSubscriptionOptions} from "../../types";
 import FormBuilder from "./formBuilder";
@@ -247,12 +247,17 @@ class PaddleForm implements PaymentForm {
         placementId: string | undefined,
         subscriptionOptions?: PaddleSubscriptionOptions
     ): Promise<void> {
+        const amplitudeId = getAmplitudeId();
+        
         const payload = {
             product_id: productId,
             paywall_id: paywallId,
             placement_id: placementId,
             user_id: this.user.id,
-            ...(subscriptionOptions?.discountId && { discount_id: subscriptionOptions.discountId })
+            ...(subscriptionOptions?.discountId && { discount_id: subscriptionOptions.discountId }),
+            metadata: {
+                ...(amplitudeId && { amplitude_id: amplitudeId })
+            },
         }
 
         log('Creating subscription for product:', productId);
