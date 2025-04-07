@@ -1,6 +1,6 @@
 import { UpsellForm } from "../../types/upsellForm";
 import { IntroductoryOffer, UpsellSubscriptionOptions } from "../../types";
-import { log, logError } from "../../utils";
+import { log, logError, getAmplitudeId } from "../../utils";
 import api from "../api";
 import { config } from "../config/config";
 import { DeepLinkURL, SelectedProductDuration, PaymentProviderKey } from "../config/constants";
@@ -32,13 +32,18 @@ class StripeUpsellForm implements UpsellForm {
                 }
             });
 
+            const amplitudeId = getAmplitudeId();
+
             // Create subscription payload
             const subscriptionPayload: any = {
                 product_id: this.productId,
                 paywall_id: this.paywallId,
                 placement_id: this.placementId,
                 user_id: this.user.id,
-                upsell: true
+                upsell: true,
+                metadata: {
+                    ...(amplitudeId && { amplitude_id: amplitudeId })
+                },
             };
 
             // Add trial days if available

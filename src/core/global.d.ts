@@ -6,6 +6,11 @@ declare global {
         },
         fbq: (method: string, event: string, properties: Record<string, string>) => void,
         dataLayer: any[];
+        amplitude: {
+            getDeviceId(): string;
+            getSessionId(): string;
+            init(apiKey: string, options?: any): void;
+        };
     }
 }
 

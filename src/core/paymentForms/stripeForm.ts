@@ -1,4 +1,4 @@
-import {documentReady, log, logError} from "../../utils"
+import {documentReady, log, logError, getAmplitudeId} from "../../utils"
 import api from '../api'
 import {
     DeepLinkURL,
@@ -198,6 +198,8 @@ class StripeForm implements PaymentForm {
         customerId: string, 
         paymentMethodId: string
     ): Promise<void> {
+        const amplitudeId = getAmplitudeId();
+        
         const payload = {
             product_id: productId,
             paywall_id: paywallId,
@@ -206,7 +208,10 @@ class StripeForm implements PaymentForm {
             customer_id: customerId,
             payment_method_id: paymentMethodId,
             ...(this.subscriptionOptions?.trialDays && { trial_period_days: this.subscriptionOptions.trialDays }),
-            ...(this.subscriptionOptions?.couponId && { discount_id: this.subscriptionOptions.couponId })
+            ...(this.subscriptionOptions?.couponId && { discount_id: this.subscriptionOptions.couponId }),
+            metadata: {
+                ...(amplitudeId && { amplitude_id: amplitudeId })
+            },
         };
 
         try {

@@ -1,6 +1,6 @@
 import { UpsellForm } from "../../types/upsellForm";
 import { IntroductoryOffer, PaymentProvider, UpsellSubscriptionOptions, Subscription } from "../../types";
-import { log, logError } from "../../utils";
+import { log, logError, getAmplitudeId } from "../../utils";
 import api from "../api";
 import { config } from "../config/config";
 import { DeepLinkURL, SelectedProductDuration, PaymentProviderKey } from "../config/constants";
@@ -210,12 +210,17 @@ class PaddleUpsellForm implements UpsellForm {
      * @private
      */
     private async createSubscription(introOffer?: IntroductoryOffer): Promise<void> {
+        const amplitudeId = getAmplitudeId();
+        
         const subscriptionPayload: any = {
             product_id: this.productId,
             paywall_id: this.paywallId,
             placement_id: this.placementId,
             user_id: this.user.id,
-            upsell: true
+            upsell: true,
+            metadata: {
+                ...(amplitudeId && { amplitude_id: amplitudeId })
+            },
         };
 
         if (introOffer?.paddle_discount_id) {

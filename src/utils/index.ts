@@ -266,6 +266,21 @@ export const generateSHA256 = async (input: any): Promise<string> => {
     return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * Get Amplitude device ID if available
+ * @returns Amplitude device ID or null if not available
+ */
+export const getAmplitudeId = (): string | null => {
+    try {
+        if (typeof window !== 'undefined' && window.amplitude && typeof window.amplitude.getDeviceId === 'function') {
+            return window.amplitude.getDeviceId();
+        }
+    } catch (error) {
+        logError('Error getting Amplitude device ID:', error);
+    }
+    return null;
+}
+
 export default {
     sleep,
     cleanObject,
@@ -286,5 +301,6 @@ export default {
     formatNumber,
     isStripeAvailable,
     isPaddleAvailable,
-    generateSHA256
+    generateSHA256,
+    getAmplitudeId
 };
