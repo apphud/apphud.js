@@ -238,9 +238,13 @@ class StripeForm implements PaymentForm {
             : defaultPaymentMethods;
 
         log("Creating customer for user", this.user.id);
+        const amplitudeId = getAmplitudeId();
         this.customer = await api.createCustomer(this.providerId, {
             user_id: this.user.id,
             payment_methods: paymentMethods,
+            metadata: {
+                ...(amplitudeId && { amplitude_id: amplitudeId })
+            },
         });
 
         if (!this.customer) {

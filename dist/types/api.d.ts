@@ -38,5 +38,9 @@ export interface CustomerSetup {
 export interface CustomerParams {
     user_id: string;
     payment_methods?: string[];
+    metadata?: {
+        amplitude_id?: string | null;
+        [key: string]: any;
+    };
 }
 //# sourceMappingURL=api.d.ts.map
