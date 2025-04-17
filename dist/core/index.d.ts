@@ -179,9 +179,8 @@ export default class ApphudSDK implements Apphud {
     /**
      * Get variable value by name
      * @param key - variable name. Example: `product1.description.price`
-     * @private
      */
-    private readVariableValueByKeyPath;
+    readVariableValueByKeyPath(key: string): string | null;
     /**
      * Find placement by ID
      * @param id - placement ID
