@@ -34,6 +34,8 @@ class FormBuilder implements PaymentFormBuilder {
         bundle?: ProductBundle
     ): Promise<void> {
         this.cleanup();
+
+        log("🍎 Apple Pay - product bundle from show form builder:", bundle);
         
         let form: PaymentForm
 
@@ -71,7 +73,8 @@ class FormBuilder implements PaymentFormBuilder {
             paywallId, 
             placementId, 
             options, 
-            subscriptionOptions
+            subscriptionOptions,
+            bundle
         )
     }
 

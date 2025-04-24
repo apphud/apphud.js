@@ -1,7 +1,7 @@
 import { PaymentProviderKind, ProductBundle } from "./apphud";
 import { Appearance, Layout } from "@stripe/stripe-js";
 export interface PaymentForm {
-    show: (productId: string, paywallId: string | undefined, placementId: string | undefined, options: PaymentProviderFormOptions, subscriptionOptions?: SubscriptionOptions) => Promise<void>;
+    show: (productId: string, paywallId: string | undefined, placementId: string | undefined, options: PaymentProviderFormOptions, subscriptionOptions?: SubscriptionOptions, productBundle?: ProductBundle) => Promise<void>;
 }
 export type LifecycleEvents = {
     [eventName: string]: LifecycleEventCallback[];

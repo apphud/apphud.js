@@ -7,7 +7,8 @@ export interface PaymentForm {
         paywallId: string | undefined, 
         placementId: string | undefined, 
         options: PaymentProviderFormOptions,
-        subscriptionOptions?: SubscriptionOptions
+        subscriptionOptions?: SubscriptionOptions,
+        productBundle?: ProductBundle
     ) => Promise<void>
 }
 

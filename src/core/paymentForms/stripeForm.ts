@@ -1,18 +1,20 @@
-import {documentReady, log, logError, getAmplitudeId} from "../../utils"
+import {documentReady, log, logError, getAmplitudeId, getValueByPath} from "../../utils"
 import api from '../api'
 import {
     DeepLinkURL,
     SelectedProductDuration,
     PaymentProviderKey
 } from "../config/constants"
-import {CustomerSetup, PaymentForm, PaymentProviderFormOptions, Subscription, User, StripeSubscriptionOptions} from "../../types"
+import {CustomerSetup, PaymentForm, PaymentProviderFormOptions, Subscription, User, StripeSubscriptionOptions, ProductBundle} from "../../types"
 import {
     loadStripe,
     Stripe,
     StripeElements,
     StripeElementsOptions,
     StripePaymentElement,
-    StripePaymentElementChangeEvent
+    StripePaymentElementChangeEvent,
+    StripePaymentElementOptions,
+    PaymentRequest as StripePaymentRequest
 } from "@stripe/stripe-js";
 import {setCookie} from "../../cookies";
 import {config} from "../config/config";
@@ -23,7 +25,8 @@ const ELEMENT_IDS = {
         form: "apphud-stripe-payment-form",
         payment: "stripe-payment-element",
         submit: "stripe-submit",
-        error: "stripe-error-message"
+        error: "stripe-error-message",
+        applePayButton: "apphud-apple-pay-button"
     },
     old: {
         form: "apphud-payment-form",
@@ -43,6 +46,7 @@ class StripeForm implements PaymentForm {
     private submitProcessingText = "Please wait..."
     private submitErrorText = "Error occurred"
     private customer: CustomerSetup | null = null;
+    private productBundle: ProductBundle | null = null;
     private currentProductId: string | null = null;
     private currentPaywallId: string | undefined;
     private currentPlacementId: string | undefined;
@@ -51,6 +55,7 @@ class StripeForm implements PaymentForm {
     private buttonStateSetter?: (state: "loading" | "ready" | "processing" | "error") => void | undefined;
     private formElement: HTMLElement | null = null;
     private submitHandler: ((event: Event) => Promise<void>) | null = null;
+    private paymentRequest: StripePaymentRequest | null = null;
 
     constructor(private user: User, private providerId: string, private accountId: string, private formBuilder: FormBuilder) {
         documentReady(async () => {
@@ -80,6 +85,19 @@ class StripeForm implements PaymentForm {
             #${ELEMENT_IDS.old.payment} {
                 width: 100%;
             }
+            
+            #${ELEMENT_IDS.new.applePayButton} {
+                background-color: black;
+                color: white;
+                border-radius: 5px;
+                padding: 10px;
+                height: 40px;
+                margin-bottom: 15px;
+                display: none;
+                width: 100%;
+                cursor: pointer;
+                border: none;
+            }
         `;
 
         const styleElement = document.createElement('style');
@@ -108,14 +126,18 @@ class StripeForm implements PaymentForm {
         paywallId: string | undefined, 
         placementId: string | undefined, 
         options: PaymentProviderFormOptions = {},
-        subscriptionOptions?: StripeSubscriptionOptions
+        subscriptionOptions?: StripeSubscriptionOptions,
+        productBundle?: ProductBundle
     ): Promise<void> {
+        this.productBundle = productBundle || null;
         this.currentProductId = productId;
         this.currentPaywallId = paywallId;
         this.currentPlacementId = placementId;
         this.subscriptionOptions = subscriptionOptions;
         this.formBuilder.emit("payment_form_initialized", { paymentProvider: "stripe", event: { selector: "#apphud-stripe-payment-form" } })
         this.buttonStateSetter = options.buttonStateSetter
+
+        log("🍎 Apple Pay - product bundle from show:", productBundle);
 
         // Detect which form type is present
         if (options.id) {
@@ -147,6 +169,9 @@ class StripeForm implements PaymentForm {
         
         // Initialize Stripe elements
         this.initStripe(options);
+        
+        // Initialize Apple Pay
+        this.initializeApplePay(options);
         
         // Setup form submission handler
         this.setupForm(options);
@@ -255,6 +280,196 @@ class StripeForm implements PaymentForm {
         log('Customer created', this.customer);
     }
     
+    /**
+     * Initialize Apple Pay
+     * @private
+     * @param options - Payment form options
+     */
+    private initializeApplePay(options?: PaymentProviderFormOptions): void {
+        if (!this.stripe) {
+            logError('🍎 Apple Pay [ERROR] - Failed to initialize Apple Pay: Stripe not initialized');
+            return;
+        }
+
+        if (!this.productBundle) {
+            logError('🍎 Apple Pay [ERROR] - Failed to initialize Apple Pay: Product bundle is missing');
+            return;
+        }
+
+        log('🍎 Apple Pay [1] - Starting initialization with product bundle:', this.productBundle);
+        
+        // Get product price info from bundle
+        let amount = 0;
+        let currency = 'usd';
+        let productName = 'Subscription';
+        
+        // Extract price from bundle properties
+        if (this.productBundle.properties) {
+            const priceString = getValueByPath(this.productBundle.properties, 'new-price');
+            log('🍎 Apple Pay [2] - Price string from bundle:', priceString);
+            
+            if (priceString) {
+                // Extract numeric value from price string
+                const numericValue = parseFloat(priceString.replace(/[^0-9.]/g, ''));
+                if (!isNaN(numericValue)) {
+                    // Convert to cents for Stripe
+                    amount = Math.round(numericValue * 100);
+                    log('🍎 Apple Pay [3] - Converted price to cents:', amount);
+                } else {
+                    logError('🍎 Apple Pay [ERROR] - Failed to parse price from:', priceString);
+                    return;
+                }
+                
+                // Try to extract currency
+                const currencyMatch = priceString.match(/[£€$₹¥₽₩₴₿]/);
+                if (currencyMatch) {
+                    const currencySymbol = currencyMatch[0];
+                    // Map common currency symbols to codes
+                    const currencyMap: {[key: string]: string} = {
+                        '$': 'usd',
+                        '€': 'eur',
+                        '£': 'gbp',
+                        '¥': 'jpy',
+                        '₹': 'inr'
+                    };
+                    currency = currencyMap[currencySymbol] || 'usd';
+                    log('🍎 Apple Pay [4] - Detected currency:', currency);
+                }
+            } else {
+                logError('🍎 Apple Pay [ERROR] - No price found in bundle properties');
+                return;
+            }
+        } else {
+            logError('🍎 Apple Pay [ERROR] - Bundle has no properties');
+            return;
+        }
+        
+        // Get product name
+        if (this.productBundle.name) {
+            productName = this.productBundle.name;
+            log('🍎 Apple Pay [5] - Using product name:', productName);
+        } else {
+            log('🍎 Apple Pay [5] - Using default product name:', productName);
+        }
+        
+        log('🍎 Apple Pay [6] - Creating payment request with:', { currency, amount, productName });
+        
+        // Create payment request for Apple Pay
+        this.paymentRequest = this.stripe.paymentRequest({
+            country: 'US',
+            currency: currency,
+            total: {
+                label: productName,
+                amount: amount,
+            },
+            requestPayerName: true,
+            requestPayerEmail: true,
+        });
+
+        log("🍎 Apple Pay - payment request:", this.paymentRequest);
+
+        // Check if Apple Pay is available
+        this.paymentRequest.canMakePayment().then((result: any) => {
+            log('🍎 Apple Pay [7] - Availability check result:', result);
+            
+            if (result && result.applePay) {
+                log('🍎 Apple Pay [8] - Available, looking for button element with ID:', this.elementIDs.applePayButton);
+                // Show Apple Pay button if available
+                const applePayButton = document.getElementById(this.elementIDs.applePayButton);
+                if (applePayButton) {
+                    log('🍎 Apple Pay [9] - Button element found, displaying it');
+                    applePayButton.style.display = 'block';
+                    
+                    // Handle Apple Pay button click
+                    applePayButton.addEventListener('click', () => {
+                        log('🍎 Apple Pay [10] - Button clicked, showing payment sheet');
+                        this.paymentRequest?.show();
+                    });
+                } else {
+                    logError('🍎 Apple Pay [ERROR] - Button element not found with ID:', this.elementIDs.applePayButton);
+                }
+            } else {
+                log('🍎 Apple Pay [11] - Not available on this device/browser');
+            }
+        }).catch(error => {
+            logError('🍎 Apple Pay [ERROR] - Error checking Apple Pay availability:', error);
+        });
+        
+        // Handle payment method selection with Apple Pay
+        this.paymentRequest.on('paymentmethod', async (event: any) => {
+            log('🍎 Apple Pay [12] - Payment method received:', event.paymentMethod.id);
+            
+            try {
+                if (!this.customer) {
+                    const error = new Error('Customer not initialized');
+                    logError('🍎 Apple Pay [ERROR] - Customer not initialized');
+                    throw error;
+                }
+                
+                // Create subscription with the payment method from Apple Pay
+                log('🍎 Apple Pay [13] - Creating subscription');
+                
+                await this.createSubscription(
+                    this.currentProductId!,
+                    this.currentPaywallId,
+                    this.currentPlacementId,
+                    this.customer.id,
+                    event.paymentMethod.id
+                );
+                
+                log('🍎 Apple Pay [14] - Subscription created');
+                
+                if (!this.subscription) {
+                    const error = new Error('Failed to create subscription');
+                    logError('🍎 Apple Pay [ERROR] - Failed to create subscription');
+                    event.complete('fail');
+                    this.displayError('Failed to create subscription');
+                    return;
+                }
+                
+                // Handle 3DS if needed
+                if (this.subscription.client_secret) {
+                    log('🍎 Apple Pay [15] - 3DS verification needed');
+                    
+                    const { error: confirmError } = await this.stripe!.confirmCardPayment(
+                        this.subscription.client_secret,
+                        { payment_method: event.paymentMethod.id },
+                        { handleActions: false }
+                    );
+                    
+                    if (confirmError) {
+                        logError('🍎 Apple Pay [ERROR] - 3DS verification failed:', confirmError);
+                        event.complete('fail');
+                        this.displayError(confirmError.message || 'Payment confirmation failed');
+                        
+                        this.formBuilder.emit("payment_failure", {
+                            paymentProvider: "stripe",
+                            event: { error: confirmError }
+                        });
+                        return;
+                    }
+                    
+                    log('🍎 Apple Pay [16] - 3DS verification successful');
+                }
+                
+                log('🍎 Apple Pay [17] - Payment completed successfully');
+                event.complete('success');
+                
+                // Handle successful payment
+                this.handleSuccessfulPayment(options);
+                
+            } catch (error) {
+                logError("🍎 Apple Pay [ERROR] - Payment processing error:", error);
+                event.complete('fail');
+                this.displayError((error as Error).message || 'Payment failed');
+                
+                this.formBuilder.emit("payment_failure", {
+                    paymentProvider: "stripe",
+                    event: { error }
+                });
+            }
+        });
+    }
 
     /**
      * Initialize Stripe elements
@@ -292,11 +507,11 @@ class StripeForm implements PaymentForm {
         }
 
         this.elements = this.stripe.elements(elementsOptions)
-        
+
         // Create and mount the Payment Element
         const paymentElement = this.elements.create('payment', {
             layout: options?.stripeAppearance?.layout
-        })
+        });
         
         const paymentElementContainer = document.getElementById(this.elementIDs.payment);
         if (paymentElementContainer) {
@@ -440,26 +655,36 @@ class StripeForm implements PaymentForm {
                 }
             }
 
-            // Handle successful subscription
-            const deepLink = this.subscription.deep_link;
-            if (deepLink) {
-                setCookie(DeepLinkURL, deepLink, SelectedProductDuration);
-            }
-                
-            setCookie(PaymentProviderKey, "stripe", SelectedProductDuration);
-                
-            setTimeout(() => {
-                if (options?.onSuccess) {
-                    options.onSuccess()
-                } else if (options?.successUrl && options.successUrl !== 'undefined') {
-                    document.location.href = options.successUrl;
-                } else {
-                    document.location.href = config.baseSuccessURL + '/' + deepLink;
-                }
-            }, config.redirectDelay);
+            // Handle successful payment
+            this.handleSuccessfulPayment(options);
         };
         
         this.formElement.addEventListener('submit', this.submitHandler);
+    }
+    
+    /**
+     * Handle successful payment
+     * @param options - success url / failure url
+     * @private
+     */
+    private handleSuccessfulPayment(options?: PaymentProviderFormOptions): void {
+        // Handle successful subscription
+        const deepLink = this.subscription?.deep_link;
+        if (deepLink) {
+            setCookie(DeepLinkURL, deepLink, SelectedProductDuration);
+        }
+            
+        setCookie(PaymentProviderKey, "stripe", SelectedProductDuration);
+            
+        setTimeout(() => {
+            if (options?.onSuccess) {
+                options.onSuccess()
+            } else if (options?.successUrl && options.successUrl !== 'undefined') {
+                document.location.href = options.successUrl;
+            } else {
+                document.location.href = config.baseSuccessURL + '/' + deepLink;
+            }
+        }, config.redirectDelay);
     }
 
     /**
