@@ -19,6 +19,19 @@ export interface PaymentProviderFormOptions {
     paddleSettings?: PaddleSettingsOptions;
     id?: string;
     buttonStateSetter?: (state: "loading" | "ready" | "processing" | "error") => void;
+    applePay?: boolean;
+    applePayConfig?: {
+        priceMacro?: string;
+        staticPrice?: {
+            currency: string;
+            amount: number;
+            label: string;
+        };
+        requestPayerName?: boolean;
+        requestPayerEmail?: boolean;
+        requestPayerPhone?: boolean;
+        onApplePayAvailable?: (isAvailable: boolean) => void;
+    };
 }
 export interface Country {
     name: string;

@@ -958,7 +958,7 @@ export default class ApphudSDK implements Apphud {
      * @returns Object containing placementID and bundleIndex from saved selection
      * @private
      */
-    private getSavedPlacementBundleIndex(): { placementID: string | undefined, bundleIndex: number } {
+    public getSavedPlacementBundleIndex(): { placementID: string | undefined, bundleIndex: number } {
         const savedIndices = getCookie(SelectedBundleIndex)
 
         if (savedIndices !== null) {

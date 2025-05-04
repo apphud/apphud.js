@@ -175,7 +175,10 @@ export default class ApphudSDK implements Apphud {
      * @returns Object containing placementID and bundleIndex from saved selection
      * @private
      */
-    private getSavedPlacementBundleIndex;
+    getSavedPlacementBundleIndex(): {
+        placementID: string | undefined;
+        bundleIndex: number;
+    };
     /**
      * Get variable value by name
      * @param key - variable name. Example: `product1.description.price`

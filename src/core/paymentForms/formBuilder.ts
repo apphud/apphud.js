@@ -35,8 +35,6 @@ class FormBuilder implements PaymentFormBuilder {
     ): Promise<void> {
         this.cleanup();
 
-        log("🍎 Apple Pay - product bundle from show form builder:", bundle);
-        
         let form: PaymentForm
 
         const introOffer = bundle?.properties?.introductory_offer;
