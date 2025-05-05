@@ -548,7 +548,7 @@ class StripeForm implements PaymentForm {
         const paymentElement = this.elements.create('payment', {
             layout: options?.stripeAppearance?.layout,
             wallets: {
-                applePay: "never"
+                applePay: options?.applePayConfig?.showApplePayInPaymentElement === false ? "never" : "auto"
             }
         });
         

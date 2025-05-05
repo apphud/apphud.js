@@ -46,6 +46,7 @@ export interface PaymentProviderFormOptions {
         requestPayerEmail?: boolean;
         requestPayerPhone?: boolean;
         onApplePayAvailable?: (isAvailable: boolean) => void;
+        showApplePayInPaymentElement?: boolean;
     };
 }
 
