@@ -57,6 +57,8 @@ class StripeForm implements PaymentForm {
     private formElement: HTMLElement | null = null;
     private submitHandler: ((event: Event) => Promise<void>) | null = null;
     private paymentRequest: StripePaymentRequest | null = null;
+    private applePayButtonHandler: ((event: Event) => void) | null = null;
+    private applePayButton: HTMLElement | null = null;
 
     constructor(private user: User, private providerId: string, private accountId: string, private formBuilder: FormBuilder) {
         documentReady(async () => {
@@ -383,14 +385,20 @@ class StripeForm implements PaymentForm {
                 if (applePayButton) {
                     applePayButton.style.display = 'block';
                     
-                    // Handle Apple Pay button click
-                    applePayButton.addEventListener('click', () => {
+                    // Store references to button and handler
+                    this.applePayButton = applePayButton;
+                    
+                    // Create handler function
+                    this.applePayButtonHandler = () => {
                         // Set button state to processing when clicked
                         if (this.buttonStateSetter) {
                             this.buttonStateSetter("processing");
                         }
                         this.paymentRequest?.show();
-                    });
+                    };
+                    
+                    // Add event listener
+                    this.applePayButton.addEventListener('click', this.applePayButtonHandler);
                 } else {
                     logError('Apple Pay button element not found with ID: ' + this.elementIDs.applePayButton, true);
                 }
@@ -730,9 +738,17 @@ class StripeForm implements PaymentForm {
      * Clean up form event listeners to prevent duplicates
      */
     public cleanupFormListeners(): void {
+        // Clean up form submit handler
         if (this.formElement && this.submitHandler) {
             this.formElement.removeEventListener('submit', this.submitHandler);
             this.submitHandler = null;
+        }
+        
+        // Clean up Apple Pay button handler
+        if (this.applePayButton && this.applePayButtonHandler) {
+            this.applePayButton.removeEventListener('click', this.applePayButtonHandler);
+            this.applePayButtonHandler = null;
+            this.applePayButton = null;
         }
     }
 
