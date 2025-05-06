@@ -15,9 +15,25 @@ import {log} from "../../utils";
 
 class FormBuilder implements PaymentFormBuilder {
     private events: LifecycleEvents = {}
-    private currentForm: PaymentForm | null = null;
+    private currentForms: Map<string, PaymentForm> = new Map();
 
     constructor(private provider: PaymentProvider, private user: User) {}
+
+    /**
+     * Generate a unique key for a payment form based on its type
+     */
+    private getFormKey(provider: string, options: PaymentProviderFormOptions): string {
+        let formType = "default";
+        
+        if (provider === "stripe") {
+            if (options.applePay === true) {
+                formType = "apple_pay";
+            }
+            // Add additional form types as needed in the future (e.g., Google Pay)
+        }
+        
+        return `${provider}:${formType}`;
+    }
 
     /**
      * Show form on page
@@ -33,7 +49,9 @@ class FormBuilder implements PaymentFormBuilder {
         options: PaymentProviderFormOptions = {},
         bundle?: ProductBundle
     ): Promise<void> {
-        this.cleanup();
+        // Clean up only the specific form type being requested
+        const formKey = this.getFormKey(this.provider.kind, options);
+        this.cleanup(formKey);
 
         let form: PaymentForm
 
@@ -64,7 +82,8 @@ class FormBuilder implements PaymentFormBuilder {
                 throw new Error("Unsupported type " + this.provider.kind)
         }
 
-        this.currentForm = form;
+        // Store the current form with its unique key
+        this.currentForms.set(formKey, form);
 
         await form.show(
             productId, 
@@ -77,16 +96,35 @@ class FormBuilder implements PaymentFormBuilder {
     }
 
     /**
-     * Clean up any existing form event listeners
+     * Clean up specific form event listeners or all if no key is provided
+     * @param formKey - Optional key to identify specific form to clean up
      */
-    public cleanup(): void {
-        if (this.currentForm) {
-            if (this.currentForm instanceof StripeForm) {
-                this.currentForm.cleanupFormListeners();
+    public cleanup(formKey?: string): void {
+        if (formKey) {
+            // Clean up only the specific form type
+            const form = this.currentForms.get(formKey);
+            if (form) {
+                if (form instanceof StripeForm) {
+                    form.cleanupFormListeners();
+                }
+                this.currentForms.delete(formKey);
             }
-            
-            this.currentForm = null;
+        } else {
+            // Clean up all forms if no specific key is provided
+            this.cleanupAll();
         }
+    }
+    
+    /**
+     * Clean up all form event listeners
+     */
+    public cleanupAll(): void {
+        this.currentForms.forEach((form, key) => {
+            if (form instanceof StripeForm) {
+                form.cleanupFormListeners();
+            }
+        });
+        this.currentForms.clear();
     }
 
     /**

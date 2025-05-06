@@ -66,7 +66,7 @@ export default class ApphudSDK implements Apphud {
     private isPaywallShown: boolean = false;
     private reportedPlacementErrors: Set<string> = new Set();
     private isUpsellPaywallShown: boolean = false;
-    private currentFormBuilder: FormBuilder | null = null;
+    private formBuilders: Map<string, FormBuilder> = new Map();
     // private params = new URLSearchParams(window.location.search);
 
     constructor() {}
@@ -276,9 +276,6 @@ export default class ApphudSDK implements Apphud {
         this.checkInitialization();
 
         this.ready(async (): Promise<void> => {
-            if (this.currentFormBuilder) {
-                this.currentFormBuilder.cleanup();
-            }
             
             const formOptions = options || {};
 
@@ -341,8 +338,12 @@ export default class ApphudSDK implements Apphud {
                 return;
             }
 
-            const builder = new FormBuilder(targetProvider, this.user);
-            this.currentFormBuilder = builder;
+            // Initialize FormBuilder if it doesn't exist or if provider has changed
+            let builder = this.formBuilders.get(targetProvider.id);
+            if (!builder) {
+                builder = new FormBuilder(targetProvider, this.user);
+                this.formBuilders.set(targetProvider.id, builder);
+            }
 
             const formEvents: LifecycleEventName[] = ["payment_form_initialized", "payment_form_ready", "payment_failure", "payment_success"];
 
