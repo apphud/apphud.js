@@ -1,9 +1,8 @@
-import { PaymentForm, PaymentProviderFormOptions, User, StripeSubscriptionOptions } from "../../types";
+import { PaymentForm, PaymentProviderFormOptions, User, StripeSubscriptionOptions, PaymentProvider } from "../../types";
 import FormBuilder from "./formBuilder";
 declare class StripeForm implements PaymentForm {
     private user;
-    private providerId;
-    private accountId;
+    private provider;
     private formBuilder;
     private stripe;
     private elements;
@@ -22,7 +21,7 @@ declare class StripeForm implements PaymentForm {
     private buttonStateSetter?;
     private formElement;
     private submitHandler;
-    constructor(user: User, providerId: string, accountId: string, formBuilder: FormBuilder);
+    constructor(user: User, provider: PaymentProvider, formBuilder: FormBuilder);
     private injectStyles;
     private displayError;
     /**

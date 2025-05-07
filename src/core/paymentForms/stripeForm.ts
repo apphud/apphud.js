@@ -5,7 +5,7 @@ import {
     SelectedProductDuration,
     PaymentProviderKey
 } from "../config/constants"
-import {CustomerSetup, PaymentForm, PaymentProviderFormOptions, Subscription, User, StripeSubscriptionOptions} from "../../types"
+import {CustomerSetup, PaymentForm, PaymentProviderFormOptions, Subscription, User, StripeSubscriptionOptions, PaymentProvider} from "../../types"
 import {
     loadStripe,
     Stripe,
@@ -52,16 +52,16 @@ class StripeForm implements PaymentForm {
     private formElement: HTMLElement | null = null;
     private submitHandler: ((event: Event) => Promise<void>) | null = null;
 
-    constructor(private user: User, private providerId: string, private accountId: string, private formBuilder: FormBuilder) {
+    constructor(private user: User, private provider: PaymentProvider, private formBuilder: FormBuilder) {
         documentReady(async () => {
             this.injectStyles();
-            let key = config.stripeLiveKey
-
-            if (config.debug) {
-                key = config.stripeTestKey
+            
+            if (!this.provider.token) {
+                logError("Missing Stripe provider token", true);
+                return;
             }
-
-            this.stripe = await loadStripe(key, {stripeAccount: this.accountId})
+            
+            this.stripe = await loadStripe(this.provider.token, {stripeAccount: this.provider.identifier});
         })
     }
 
@@ -216,7 +216,7 @@ class StripeForm implements PaymentForm {
 
         try {
             log('Creating subscription for product:', productId);
-            this.subscription = await api.createSubscription(this.providerId, payload);
+            this.subscription = await api.createSubscription(this.provider.id, payload);
     
             if (!this.subscription) {
                 logError('Failed to create subscription for product:', productId);
@@ -239,7 +239,7 @@ class StripeForm implements PaymentForm {
 
         log("Creating customer for user", this.user.id);
         const amplitudeId = getAmplitudeId();
-        this.customer = await api.createCustomer(this.providerId, {
+        this.customer = await api.createCustomer(this.provider.id, {
             user_id: this.user.id,
             payment_methods: paymentMethods,
             metadata: {
