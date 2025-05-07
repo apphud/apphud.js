@@ -223,8 +223,6 @@ export type Config = {
     httpRetriesCount: number
     httpRetryDelay: number
     headers: HeadersInit
-    stripeLiveKey: string
-    stripeTestKey: string
     disableCookies: boolean
 }
 
