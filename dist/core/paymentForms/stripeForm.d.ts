@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { PaymentForm, PaymentProviderFormOptions, User, StripeSubscriptionOptions, ProductBundle } from "../../types";
-=======
-import { PaymentForm, PaymentProviderFormOptions, User, StripeSubscriptionOptions, PaymentProvider } from "../../types";
->>>>>>> master
+import { PaymentForm, PaymentProviderFormOptions, User, StripeSubscriptionOptions, ProductBundle, PaymentProvider } from "../../types";
 import FormBuilder from "./formBuilder";
 declare class StripeForm implements PaymentForm {
     private user;
@@ -26,14 +22,10 @@ declare class StripeForm implements PaymentForm {
     private buttonStateSetter?;
     private formElement;
     private submitHandler;
-<<<<<<< HEAD
     private paymentRequest;
     private applePayButtonHandler;
     private applePayButton;
-    constructor(user: User, providerId: string, accountId: string, formBuilder: FormBuilder);
-=======
     constructor(user: User, provider: PaymentProvider, formBuilder: FormBuilder);
->>>>>>> master
     private injectStyles;
     private displayError;
     /**

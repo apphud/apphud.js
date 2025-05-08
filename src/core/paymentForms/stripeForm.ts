@@ -314,8 +314,10 @@ class StripeForm implements PaymentForm {
             
             currency = staticPrice.currency || 'usd';
             amount = staticPrice.amount || 0;
-            productName = staticPrice.label || 'Subscription';
-        } else if (this.productBundle.properties) {
+        }
+        
+        // Get price from bundle if not using static price
+        if (!options?.applePayConfig?.staticPrice && this.productBundle.properties) {
             // Get the selected price macro from options, or use "new-price" as default
             const priceMacro = options?.applePayConfig?.priceMacro || "new-price";
             
@@ -338,13 +340,20 @@ class StripeForm implements PaymentForm {
                 logError(`No price found for macro ${priceMacro} in bundle properties`, true);
                 return;
             }
-        } else {
-            logError('Bundle has no properties and no static price provided', true);
-            return;
         }
         
-        // Get product name if not already set by static price
-        if (!options?.applePayConfig?.staticPrice && this.productBundle.name) {
+        // Get product name based on product configuration
+        if (options?.applePayConfig?.productLabel) {
+            // Direct product label has highest priority
+            productName = options.applePayConfig.productLabel;
+        } else if (options?.applePayConfig?.productMacro && this.productBundle.properties) {
+            // Get product name from the specified macro if available
+            const productValue = getValueByPath(this.productBundle.properties, options.applePayConfig.productMacro);
+            if (productValue) {
+                productName = productValue;
+            }
+        } else if (this.productBundle.name) {
+            // Fallback to bundle name if available
             productName = this.productBundle.name;
         }
         

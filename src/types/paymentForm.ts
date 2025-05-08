@@ -37,10 +37,11 @@ export interface PaymentProviderFormOptions {
     applePay?: boolean;
     applePayConfig?: {
         priceMacro?: string;
+        productMacro?: string;
+        productLabel?: string;
         staticPrice?: {
             currency: string;
             amount: number;
-            label: string;
         };
         requestPayerName?: boolean;
         requestPayerEmail?: boolean;
