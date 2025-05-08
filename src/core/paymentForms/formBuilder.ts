@@ -67,7 +67,7 @@ class FormBuilder implements PaymentFormBuilder {
                     couponId: introOffer.stripe_coupon_id
                 } : undefined;
                 
-                form = new StripeForm(this.user, this.provider.id, this.provider.identifier, this)
+                form = new StripeForm(this.user, this.provider, this)
                 log("Start stripe form for account_id:", this.provider.identifier)
                 break
             case "paddle":
