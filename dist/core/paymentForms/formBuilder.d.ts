@@ -3,8 +3,12 @@ declare class FormBuilder implements PaymentFormBuilder {
     private provider;
     private user;
     private events;
-    private currentForm;
+    private currentForms;
     constructor(provider: PaymentProvider, user: User);
+    /**
+     * Generate a unique key for a payment form based on its type
+     */
+    private getFormKey;
     /**
      * Show form on page
      * @param productId - Product ID
@@ -14,9 +18,14 @@ declare class FormBuilder implements PaymentFormBuilder {
      */
     show(productId: string, paywallId: string | undefined, placementId: string | undefined, options?: PaymentProviderFormOptions, bundle?: ProductBundle): Promise<void>;
     /**
-     * Clean up any existing form event listeners
+     * Clean up specific form event listeners or all if no key is provided
+     * @param formKey - Optional key to identify specific form to clean up
      */
-    cleanup(): void;
+    cleanup(formKey?: string): void;
+    /**
+     * Clean up all form event listeners
+     */
+    cleanupAll(): void;
     /**
      * Track event
      * @param eventName - event name

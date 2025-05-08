@@ -7,7 +7,8 @@ export interface PaymentForm {
         paywallId: string | undefined, 
         placementId: string | undefined, 
         options: PaymentProviderFormOptions,
-        subscriptionOptions?: SubscriptionOptions
+        subscriptionOptions?: SubscriptionOptions,
+        productBundle?: ProductBundle
     ) => Promise<void>
 }
 
@@ -33,6 +34,21 @@ export interface PaymentProviderFormOptions {
     paddleSettings?: PaddleSettingsOptions
     id?: string
     buttonStateSetter?: (state: "loading" | "ready" | "processing" | "error") => void
+    applePay?: boolean;
+    applePayConfig?: {
+        priceMacro?: string;
+        productMacro?: string;
+        productLabel?: string;
+        staticPrice?: {
+            currency: string;
+            amount: number;
+        };
+        requestPayerName?: boolean;
+        requestPayerEmail?: boolean;
+        requestPayerPhone?: boolean;
+        onApplePayAvailable?: (isAvailable: boolean) => void;
+        showApplePayInPaymentElement?: boolean;
+    };
 }
 
 export interface Country {

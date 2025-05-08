@@ -1,4 +1,4 @@
-import { PaymentForm, PaymentProviderFormOptions, User, StripeSubscriptionOptions, PaymentProvider } from "../../types";
+import { PaymentForm, PaymentProviderFormOptions, User, StripeSubscriptionOptions, ProductBundle, PaymentProvider } from "../../types";
 import FormBuilder from "./formBuilder";
 declare class StripeForm implements PaymentForm {
     private user;
@@ -13,6 +13,7 @@ declare class StripeForm implements PaymentForm {
     private submitProcessingText;
     private submitErrorText;
     private customer;
+    private productBundle;
     private currentProductId;
     private currentPaywallId;
     private currentPlacementId;
@@ -21,6 +22,9 @@ declare class StripeForm implements PaymentForm {
     private buttonStateSetter?;
     private formElement;
     private submitHandler;
+    private paymentRequest;
+    private applePayButtonHandler;
+    private applePayButton;
     constructor(user: User, provider: PaymentProvider, formBuilder: FormBuilder);
     private injectStyles;
     private displayError;
@@ -32,7 +36,7 @@ declare class StripeForm implements PaymentForm {
      * @param options - Form options. Success URL / Failure URL
      * @param subscriptionOptions - Optional subscription options
      */
-    show(productId: string, paywallId: string | undefined, placementId: string | undefined, options?: PaymentProviderFormOptions, subscriptionOptions?: StripeSubscriptionOptions): Promise<void>;
+    show(productId: string, paywallId: string | undefined, placementId: string | undefined, options?: PaymentProviderFormOptions, subscriptionOptions?: StripeSubscriptionOptions, productBundle?: ProductBundle): Promise<void>;
     private setButtonState;
     /**
      * Create subscription
@@ -46,6 +50,12 @@ declare class StripeForm implements PaymentForm {
     private createSubscription;
     private createCustomer;
     /**
+     * Initialize Apple Pay
+     * @private
+     * @param options - Payment form options
+     */
+    private initializeApplePay;
+    /**
      * Initialize Stripe elements
      * @private
      * @param options - Payment form options including Stripe UI customization
@@ -57,6 +67,12 @@ declare class StripeForm implements PaymentForm {
      * @private
      */
     private setupForm;
+    /**
+     * Handle successful payment
+     * @param options - success url / failure url
+     * @private
+     */
+    private handleSuccessfulPayment;
     /**
      * Clean up form event listeners to prevent duplicates
      */

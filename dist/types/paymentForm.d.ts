@@ -1,7 +1,7 @@
 import { PaymentProviderKind, ProductBundle } from "./apphud";
 import { Appearance, Layout } from "@stripe/stripe-js";
 export interface PaymentForm {
-    show: (productId: string, paywallId: string | undefined, placementId: string | undefined, options: PaymentProviderFormOptions, subscriptionOptions?: SubscriptionOptions) => Promise<void>;
+    show: (productId: string, paywallId: string | undefined, placementId: string | undefined, options: PaymentProviderFormOptions, subscriptionOptions?: SubscriptionOptions, productBundle?: ProductBundle) => Promise<void>;
 }
 export type LifecycleEvents = {
     [eventName: string]: LifecycleEventCallback[];
@@ -19,6 +19,21 @@ export interface PaymentProviderFormOptions {
     paddleSettings?: PaddleSettingsOptions;
     id?: string;
     buttonStateSetter?: (state: "loading" | "ready" | "processing" | "error") => void;
+    applePay?: boolean;
+    applePayConfig?: {
+        priceMacro?: string;
+        productMacro?: string;
+        productLabel?: string;
+        staticPrice?: {
+            currency: string;
+            amount: number;
+        };
+        requestPayerName?: boolean;
+        requestPayerEmail?: boolean;
+        requestPayerPhone?: boolean;
+        onApplePayAvailable?: (isAvailable: boolean) => void;
+        showApplePayInPaymentElement?: boolean;
+    };
 }
 export interface Country {
     name: string;
