@@ -200,7 +200,7 @@ const timestamp = (): number => {
     return (new Date()).getTime() / 1000.0
 }
 
-const getValueByPath = (obj: ApphudHash, path: string): string | null => {
+export const getValueByPath = (obj: ApphudHash, path: string): string | null => {
     // Try requested language first
     let langObj = obj[config.language];
     

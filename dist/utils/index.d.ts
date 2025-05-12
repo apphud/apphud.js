@@ -7,6 +7,7 @@ export declare const log: (...message: any[]) => void;
  */
 export declare const logError: (...args: any[]) => void;
 export declare const documentReady: (callback: ApphudFunc) => void;
+export declare const getValueByPath: (obj: ApphudHash, path: string) => string | null;
 export declare const generateSHA256: (input: any) => Promise<string>;
 /**
  * Get Amplitude device ID if available
