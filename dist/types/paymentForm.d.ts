@@ -34,6 +34,7 @@ export interface PaymentProviderFormOptions {
         onApplePayAvailable?: (isAvailable: boolean) => void;
         showApplePayInPaymentElement?: boolean;
     };
+    hideTerms?: boolean;
 }
 export interface Country {
     name: string;

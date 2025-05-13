@@ -561,13 +561,33 @@ class StripeForm implements PaymentForm {
 
         this.elements = this.stripe.elements(elementsOptions)
 
-        // Create and mount the Payment Element
-        const paymentElement = this.elements.create('payment', {
+        // Create payment element options
+        const paymentElementOptions: StripePaymentElementOptions = {
             layout: options?.stripeAppearance?.layout,
             wallets: {
                 applePay: options?.applePayConfig?.showApplePayInPaymentElement === false ? "never" : "auto"
             }
-        });
+        };
+        
+        // Set terms to 'never' if hideTerms is true
+        if (options?.hideTerms) {
+            paymentElementOptions.terms = {
+                applePay: 'never',
+                auBecsDebit: 'never',
+                bancontact: 'never',
+                card: 'never',
+                cashapp: 'never',
+                googlePay: 'never',
+                ideal: 'never',
+                paypal: 'never',
+                sepaDebit: 'never',
+                sofort: 'never',
+                usBankAccount: 'never'
+            };
+        }
+
+        // Create and mount the Payment Element
+        const paymentElement = this.elements.create('payment', paymentElementOptions);
         
         const paymentElementContainer = document.getElementById(this.elementIDs.payment);
         if (paymentElementContainer) {
