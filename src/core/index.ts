@@ -102,6 +102,19 @@ export default class ApphudSDK implements Apphud {
         }
         config.headers = api.baseHeaders()
 
+        // push events from queue
+        try {
+            this.eventQueue = JSON.parse(getCookie(EventsKey) || "[]");
+
+            for (let i = 0; i < this.eventQueue.length; i++) {
+                this.trackEvent(this.eventQueue[i])
+            }
+        } catch (e: any) {
+            logError(e as Error);
+        }
+
+        this.isInitialized = true;
+
         const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
         this.userID = getCookie(cookieKey) || undefined;
         
@@ -118,19 +131,6 @@ export default class ApphudSDK implements Apphud {
         }
 
         this.hashedUserID = await generateSHA256(this.userID);
-
-        // push events from queue
-        try {
-            this.eventQueue = JSON.parse(getCookie(EventsKey) || "[]");
-
-            for (let i = 0; i < this.eventQueue.length; i++) {
-                this.trackEvent(this.eventQueue[i])
-            }
-        } catch (e: any) {
-            logError(e as Error);
-        }
-
-        this.isInitialized = true;
 
         u.documentReady(async (): Promise<void> => {
             await this.initializeApp(true, true)
