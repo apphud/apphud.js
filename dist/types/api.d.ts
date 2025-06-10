@@ -30,6 +30,8 @@ export interface Subscription {
     customer_id?: string;
     auth_token?: string;
     payment_method?: string;
+    amount?: string | number;
+    transaction_id?: string;
 }
 export interface CustomerSetup {
     id: string;

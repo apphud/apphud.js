@@ -1,6 +1,6 @@
 import { UpsellForm } from "../../types/upsellForm";
 import { IntroductoryOffer, UpsellSubscriptionOptions } from "../../types";
-import { log, logError, getAmplitudeId } from "../../utils";
+import { log, logError, getAmplitudeId, trackFacebookPurchaseEvent } from "../../utils";
 import api from "../api";
 import { config } from "../config/config";
 import { DeepLinkURL, SelectedProductDuration, PaymentProviderKey } from "../config/constants";
@@ -70,6 +70,9 @@ class StripeUpsellForm implements UpsellForm {
 
             // Save payment provider type
             setCookie(PaymentProviderKey, "stripe", SelectedProductDuration);
+
+            // Track Facebook Pixel event
+            trackFacebookPurchaseEvent(subscription);
 
             // Emit success event
             this.upsellBuilder.emit("upsell_success", {

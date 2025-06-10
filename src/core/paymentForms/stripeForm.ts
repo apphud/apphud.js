@@ -1,4 +1,4 @@
-import {documentReady, log, logError, getAmplitudeId, getValueByPath} from "../../utils"
+import {documentReady, log, logError, getAmplitudeId, getValueByPath, trackFacebookPurchaseEvent} from "../../utils"
 import { extractCurrencyFromPrice } from "../../utils/currencies"
 import api from '../api'
 import {
@@ -751,6 +751,11 @@ class StripeForm implements PaymentForm {
         }
             
         setCookie(PaymentProviderKey, "stripe", SelectedProductDuration);
+        
+        // Track Facebook Pixel event
+        if (this.subscription) {
+            trackFacebookPurchaseEvent(this.subscription);
+        }
             
         setTimeout(() => {
             if (options?.onSuccess) {

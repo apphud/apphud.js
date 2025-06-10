@@ -1,5 +1,5 @@
 import {config} from "../core/config/config";
-import {ApphudFunc, ApphudHash} from "../types";
+import {ApphudFunc, ApphudHash, Subscription} from "../types";
 import api from "../core/api";
 
 export const canStringify: boolean = typeof (JSON) !== "undefined" && typeof (JSON.stringify) !== "undefined";
@@ -279,6 +279,35 @@ export const getAmplitudeId = (): string | null => {
         logError('Error getting Amplitude device ID:', error);
     }
     return null;
+}
+
+/**
+ * Track Meta Pixel purchase or trial event
+ * @param subscription - Subscription object containing amount and transaction_id
+ */
+export const trackFacebookPurchaseEvent = (
+    subscription: Subscription
+): void => {
+    if (typeof window.fbq === 'undefined') {
+        log('Facebook Pixel not available');
+        return;
+    }
+
+    const amountValue = subscription?.amount ?? 0;
+    const isTrial = amountValue === "0" || amountValue === 0;
+    
+    const amount = amountValue ? parseFloat(String(amountValue)) / 100 : 0;
+    const currencyCode = 'USD';
+    
+    const eventName = isTrial ? 'StartTrial' : 'Purchase';
+    const eventID = subscription?.transaction_id || subscription?.id;
+
+    log(`Tracking Facebook ${eventName} event with ID: ${eventID}, amount: ${amount} ${currencyCode}`);
+
+    window.fbq('track', eventName, {
+        value: amount.toString(),
+        currency: currencyCode
+    }, { eventID });
 }
 
 export default {
