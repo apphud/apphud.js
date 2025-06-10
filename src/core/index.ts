@@ -102,6 +102,23 @@ export default class ApphudSDK implements Apphud {
         }
         config.headers = api.baseHeaders()
 
+        const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
+        this.userID = getCookie(cookieKey) || undefined;
+        
+        if (!this.userID) {
+            this.userID = u.generateId();
+
+            if (!config.disableCookies) {
+                if (!getCookie(StartAppVersionKey)) {
+                    setCookie(StartAppVersionKey, config.websiteVersion, UserCookieDuration); // 2 years
+                }
+
+                setCookie(cookieKey, this.userID, UserCookieDuration);
+            }
+        }
+
+        this.hashedUserID = await generateSHA256(this.userID);
+
         // push events from queue
         try {
             this.eventQueue = JSON.parse(getCookie(EventsKey) || "[]");
@@ -814,20 +831,9 @@ export default class ApphudSDK implements Apphud {
     private async createUser(params: ApphudHash | null, ready: boolean): Promise<User | null> {
         this.isReady = ready;
 
-        this.userID = this.getUserID();
-        this.hashedUserID = await generateSHA256(this.userID);
-
         if (!this.userID) {
-            this.userID = u.generateId();
-
-            if (!config.disableCookies) {
-                if (!getCookie(StartAppVersionKey)) {
-                    setCookie(StartAppVersionKey, config.websiteVersion, UserCookieDuration); // 2 years
-                }
-
-                const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
-                setCookie(cookieKey, this.userID, UserCookieDuration);
-            }
+            logError("User ID not available. Make sure init() was called first.", true);
+            return null;
         }
 
         let data = this.userParams({})
