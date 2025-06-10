@@ -1,4 +1,4 @@
-import {log, logError, getAmplitudeId} from "../../utils";
+import {log, logError, getAmplitudeId, trackFacebookPurchaseEvent} from "../../utils";
 import {initializePaddle, Paddle, CheckoutOpenOptions, PaddleEventData, DisplayMode, AvailablePaymentMethod, Variant} from '@paddle/paddle-js'
 import {PaymentForm, PaymentProviderFormOptions, User, PaymentProvider, Subscription, PaddleSubscriptionOptions} from "../../types";
 import FormBuilder from "./formBuilder";
@@ -164,6 +164,11 @@ class PaddleForm implements PaymentForm {
                 }
 
                 setCookie(PaymentProviderKey, "paddle", SelectedProductDuration)
+
+                // Track Facebook Pixel event
+                if (this.subscription) {
+                    trackFacebookPurchaseEvent(this.subscription);
+                }
 
                 this.formBuilder.emit("payment_success", {
                     paymentProvider: "paddle",

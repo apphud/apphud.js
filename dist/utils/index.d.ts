@@ -1,4 +1,4 @@
-import { ApphudFunc, ApphudHash } from "../types";
+import { ApphudFunc, ApphudHash, Subscription } from "../types";
 export declare const canStringify: boolean;
 export declare const log: (...message: any[]) => void;
 /**
@@ -14,6 +14,11 @@ export declare const generateSHA256: (input: any) => Promise<string>;
  * @returns Amplitude device ID or null if not available
  */
 export declare const getAmplitudeId: () => string | null;
+/**
+ * Track Meta Pixel purchase or trial event
+ * @param subscription - Subscription object containing amount and transaction_id
+ */
+export declare const trackFacebookPurchaseEvent: (subscription: Subscription) => void;
 declare const _default: {
     sleep: (ms: number) => Promise<void>;
     cleanObject: (obj: ApphudHash) => ApphudHash;

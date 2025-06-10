@@ -1,6 +1,6 @@
 import { UpsellForm } from "../../types/upsellForm";
 import { IntroductoryOffer, PaymentProvider, UpsellSubscriptionOptions, Subscription } from "../../types";
-import { log, logError, getAmplitudeId } from "../../utils";
+import { log, logError, getAmplitudeId, trackFacebookPurchaseEvent } from "../../utils";
 import api from "../api";
 import { config } from "../config/config";
 import { DeepLinkURL, SelectedProductDuration, PaymentProviderKey } from "../config/constants";
@@ -126,6 +126,11 @@ class PaddleUpsellForm implements UpsellForm {
         switch (event.name) {
             case "checkout.completed":
                 log("Paddle upsell payment completed successfully");
+                
+                // Track Facebook Pixel event
+                if (this.subscription) {
+                    trackFacebookPurchaseEvent(this.subscription);
+                }
                 
                 this.upsellBuilder.emit("upsell_success", {
                     paymentProvider: "paddle",
