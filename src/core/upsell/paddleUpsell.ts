@@ -172,14 +172,22 @@ class PaddleUpsellForm implements UpsellForm {
     private buildCheckoutConfig(): CheckoutOpenOptions {
         const paddleSettings = this.currentOptions?.paddleSettings || {};
         
+        const allowedPaymentMethods = paddleSettings.allowedPaymentMethods 
+            ? [...paddleSettings.allowedPaymentMethods as AvailablePaymentMethod[]]
+            : [];
+        
+        if (!allowedPaymentMethods.includes("saved_payment_methods" as AvailablePaymentMethod)) {
+            allowedPaymentMethods.push("saved_payment_methods" as AvailablePaymentMethod);
+        }
+        
         // Create base config with settings
         const baseConfig = {
             settings: {
                 locale: this.user.locale || "en",
                 displayMode: "overlay" as DisplayMode,
                 theme: paddleSettings.theme || "light",
-                variant: paddleSettings.variant as Variant || "multi-page",
-                allowedPaymentMethods: paddleSettings.allowedPaymentMethods as AvailablePaymentMethod[]
+                variant: paddleSettings.variant as Variant || "one-page",
+                allowedPaymentMethods: allowedPaymentMethods
             }
         };
         
