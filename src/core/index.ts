@@ -119,6 +119,11 @@ export default class ApphudSDK implements Apphud {
         this.userID = getCookie(cookieKey) || undefined;
         
         if (!this.userID) {
+            // Try to get user ID from URL parameters
+            this.userID = u.getUrlParameter('user_id') || u.getUrlParameter('userId') || undefined;
+        }
+        
+        if (!this.userID) {
             this.userID = u.generateId();
 
             if (!config.disableCookies) {
@@ -128,6 +133,9 @@ export default class ApphudSDK implements Apphud {
 
                 setCookie(cookieKey, this.userID, UserCookieDuration);
             }
+        } else if (this.userID && !getCookie(cookieKey) && !config.disableCookies) {
+            // If we got userID from URL params, save it to cookie for future use
+            setCookie(cookieKey, this.userID, UserCookieDuration);
         }
 
         this.hashedUserID = await generateSHA256(this.userID);

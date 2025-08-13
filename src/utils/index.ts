@@ -200,6 +200,11 @@ const timestamp = (): number => {
     return (new Date()).getTime() / 1000.0
 }
 
+const getUrlParameter = (name: string): string | null => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+}
+
 export const getValueByPath = (obj: ApphudHash, path: string): string | null => {
     // Try requested language first
     let langObj = obj[config.language];
@@ -324,6 +329,7 @@ export default {
     getOSVersion,
     getClosest,
     timestamp,
+    getUrlParameter,
     getValueByPath,
     roundTo,
     formatCurrency,
