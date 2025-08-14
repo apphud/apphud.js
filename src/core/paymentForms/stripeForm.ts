@@ -271,13 +271,20 @@ class StripeForm implements PaymentForm {
 
         log("Creating customer for user", this.user.id);
         const amplitudeId = getAmplitudeId();
-        this.customer = await api.createCustomer(this.provider.id, {
+        
+        const customerData: any = {
             user_id: this.user.id,
-            payment_methods: paymentMethods,
             metadata: {
                 ...(amplitudeId && { amplitude_id: amplitudeId })
             },
-        });
+        };
+        
+        // Only include payment_methods if Apple Pay is not enabled
+        if (!options.applePay) {
+            customerData.payment_methods = paymentMethods;
+        }
+        
+        this.customer = await api.createCustomer(this.provider.id, customerData);
 
         if (!this.customer) {
             logError('Failed to create customer for user', this.user.id);
