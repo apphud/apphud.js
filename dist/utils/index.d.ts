@@ -33,6 +33,7 @@ declare const _default: {
     getOSVersion: () => string;
     getClosest: (element: Element | EventTarget | null, attribute: string) => string | null;
     timestamp: () => number;
+    getUrlParameter: (name: string) => string | null;
     getValueByPath: (obj: ApphudHash, path: string) => string | null;
     roundTo: (value: number, decimals: number) => string;
     formatCurrency: (value: number, currency: string | null) => string;
