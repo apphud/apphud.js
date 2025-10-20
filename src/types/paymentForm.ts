@@ -10,6 +10,7 @@ export interface PaymentForm {
         subscriptionOptions?: SubscriptionOptions,
         productBundle?: ProductBundle
     ) => Promise<void>
+    cancel?: () => void
 }
 
 export type LifecycleEvents = { [eventName: string]: LifecycleEventCallback[] }

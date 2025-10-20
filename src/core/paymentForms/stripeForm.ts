@@ -59,6 +59,7 @@ class StripeForm implements PaymentForm {
     private paymentRequest: StripePaymentRequest | null = null;
     private applePayButtonHandler: ((event: Event) => void) | null = null;
     private applePayButton: HTMLElement | null = null;
+    private isActive: boolean = true;
 
     constructor(private user: User, private provider: PaymentProvider, private formBuilder: FormBuilder) {
         documentReady(async () => {
@@ -71,6 +72,15 @@ class StripeForm implements PaymentForm {
             
             this.stripe = await loadStripe(this.provider.token, {stripeAccount: this.provider.identifier});
         })
+    }
+
+    /**
+     * Cancel this form instance and prevent any pending async operations from completing.
+     * This is called when a new product is selected while the current form is still initializing.
+     * Prevents race conditions where an old form might attach event listeners after being replaced.
+     */
+    public cancel(): void {
+        this.isActive = false;
     }
 
     private injectStyles(): void {
@@ -170,6 +180,8 @@ class StripeForm implements PaymentForm {
 
         // Create customer
         await this.createCustomer(options);
+        
+        if (!this.isActive) return;
         
         if (!options.applePay) {
             this.initStripe(options);
@@ -637,6 +649,8 @@ class StripeForm implements PaymentForm {
      * @private
      */
     private async setupForm(options?: PaymentProviderFormOptions): Promise<void> {
+        if (!this.isActive) return; // Don't attach listeners if form was cancelled
+        
         this.cleanupFormListeners();
         
         const form = document.querySelector(`#${this.elementIDs.form}`)

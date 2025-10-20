@@ -104,6 +104,7 @@ class FormBuilder implements PaymentFormBuilder {
             // Clean up only the specific form type
             const form = this.currentForms.get(formKey);
             if (form) {
+                form.cancel?.();
                 if (form instanceof StripeForm) {
                     form.cleanupFormListeners();
                 }
@@ -120,6 +121,7 @@ class FormBuilder implements PaymentFormBuilder {
      */
     public cleanupAll(): void {
         this.currentForms.forEach((form, key) => {
+            form.cancel?.();
             if (form instanceof StripeForm) {
                 form.cleanupFormListeners();
             }

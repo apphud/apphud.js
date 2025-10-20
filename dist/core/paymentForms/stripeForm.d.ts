@@ -25,7 +25,9 @@ declare class StripeForm implements PaymentForm {
     private paymentRequest;
     private applePayButtonHandler;
     private applePayButton;
+    private isActive;
     constructor(user: User, provider: PaymentProvider, formBuilder: FormBuilder);
+    cancel(): void;
     private injectStyles;
     private displayError;
     /**
