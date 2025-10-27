@@ -61,7 +61,15 @@ class StripeForm implements PaymentForm {
     private applePayButton: HTMLElement | null = null;
     private isActive: boolean = true;
 
-    constructor(private user: User, private provider: PaymentProvider, private formBuilder: FormBuilder) {
+    constructor(
+        private user: User, 
+        private provider: PaymentProvider, 
+        private formBuilder: FormBuilder,
+        sharedCustomer: CustomerSetup | null = null
+    ) {
+        // Initialize with shared customer if provided
+        this.customer = sharedCustomer;
+        
         documentReady(async () => {
             this.injectStyles();
             
@@ -72,6 +80,24 @@ class StripeForm implements PaymentForm {
             
             this.stripe = await loadStripe(this.provider.token, {stripeAccount: this.provider.identifier});
         })
+    }
+
+    /**
+     * Wait for Stripe to be initialized
+     * Prevents race conditions during form re-initialization
+     * @private
+     */
+    private async waitForStripe(): Promise<boolean> {
+        const maxWaitTime = 5000; // 5 seconds max
+        const checkInterval = 50; // Check every 50ms
+        let elapsed = 0;
+
+        while (!this.stripe && elapsed < maxWaitTime) {
+            await new Promise(resolve => setTimeout(resolve, checkInterval));
+            elapsed += checkInterval;
+        }
+
+        return this.stripe !== null;
     }
 
     /**
@@ -178,6 +204,18 @@ class StripeForm implements PaymentForm {
             }
         }
 
+        // Wait for Stripe to be fully loaded before proceeding
+        const stripeReady = await this.waitForStripe();
+        
+        if (!stripeReady) {
+            logError("Stripe failed to load within timeout period", true);
+            this.displayError('Failed to load payment system. Please refresh the page.');
+            if (this.submit) {
+                this.setButtonState("error");
+            }
+            return;
+        }
+        
         // Create customer
         await this.createCustomer(options);
         
@@ -275,13 +313,43 @@ class StripeForm implements PaymentForm {
     }    
 
     private async createCustomer(options: PaymentProviderFormOptions): Promise<void> {
+        if (options.applePay) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Check if we already have a customer (from constructor or previous call)
+        if (this.customer) {
+            log("Reusing existing customer", this.customer.id);
+            return;
+        }
+
+        // Check if FormBuilder has a shared customer we can use
+        const sharedCustomer = this.formBuilder.getSharedCustomer();
+        if (sharedCustomer) {
+            log("Using shared customer from FormBuilder", sharedCustomer.id);
+            this.customer = sharedCustomer;
+            return;
+        }
+
+        // Check if another form is already creating a customer
+        const pendingCreation = this.formBuilder.getPendingCustomer();
+        if (pendingCreation) {
+            log("Waiting for pending customer creation to complete...");
+            this.customer = await pendingCreation;
+            if (this.customer) {
+                log("Using customer from pending creation", this.customer.id);
+                return;
+            }
+        }
+
+        // No existing customer and no ongoing creation, create a new one
         const defaultPaymentMethods = ['card', 'sepa_debit', 'bancontact'];
         
         const paymentMethods = options.stripePaymentMethods?.length 
             ? options.stripePaymentMethods 
             : defaultPaymentMethods;
 
-        log("Creating customer for user", this.user.id);
+        log("Creating new customer for user", this.user.id);
         const amplitudeId = getAmplitudeId();
         
         const customerData: any = {
@@ -296,7 +364,11 @@ class StripeForm implements PaymentForm {
             customerData.payment_methods = paymentMethods;
         }
         
-        this.customer = await api.createCustomer(this.provider.id, customerData);
+        // Create the promise and store it in FormBuilder before starting the API call
+        const creationPromise = api.createCustomer(this.provider.id, customerData);
+        this.formBuilder.setPendingCustomer(creationPromise);
+        
+        this.customer = await creationPromise;
 
         if (!this.customer) {
             logError('Failed to create customer for user', this.user.id);
@@ -304,6 +376,10 @@ class StripeForm implements PaymentForm {
         }
 
         log('Customer created', this.customer);
+        
+        // Save the customer to FormBuilder so other forms can reuse it
+        // This also clears the pending promise
+        this.formBuilder.setSharedCustomer(this.customer);
     }
     
     /**

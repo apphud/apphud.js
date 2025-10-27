@@ -7,7 +7,8 @@ import {
     User, LifecycleEvents,
     ProductBundle,
     StripeSubscriptionOptions,
-    PaddleSubscriptionOptions
+    PaddleSubscriptionOptions,
+    CustomerSetup
 } from "../../types";
 import StripeForm from "./stripeForm";
 import PaddleForm from "./paddleForm";
@@ -16,6 +17,8 @@ import {log} from "../../utils";
 class FormBuilder implements PaymentFormBuilder {
     private events: LifecycleEvents = {}
     private currentForms: Map<string, PaymentForm> = new Map();
+    private sharedCustomer: CustomerSetup | null = null; // Shared across all forms for this provider
+    private pendingCustomer: Promise<CustomerSetup | null> | null = null; // Track pending customer creation
 
     constructor(private provider: PaymentProvider, private user: User) {}
 
@@ -67,7 +70,7 @@ class FormBuilder implements PaymentFormBuilder {
                     couponId: introOffer.stripe_coupon_id
                 } : undefined;
                 
-                form = new StripeForm(this.user, this.provider, this)
+                form = new StripeForm(this.user, this.provider, this, this.sharedCustomer)
                 log("Start stripe form for account_id:", this.provider.identifier)
                 break
             case "paddle":
@@ -146,6 +149,40 @@ class FormBuilder implements PaymentFormBuilder {
         if (this.events[eventName]) {
             this.events[eventName].forEach(callback => callback(event));
         }
+    }
+
+    /**
+     * Get the shared customer for this payment provider
+     * Used by payment forms to reuse customer across multiple form instances
+     */
+    public getSharedCustomer(): CustomerSetup | null {
+        return this.sharedCustomer;
+    }
+
+    /**
+     * Set the shared customer for this payment provider
+     * Called by payment forms after creating a customer
+     */
+    public setSharedCustomer(customer: CustomerSetup): void {
+        this.sharedCustomer = customer;
+        this.pendingCustomer = null; // Clear the pending promise once customer is set
+        log("Shared customer set for provider:", this.provider.kind, customer.id);
+    }
+
+    /**
+     * Get the pending customer creation promise if one exists
+     * This prevents multiple simultaneous customer creation requests
+     */
+    public getPendingCustomer(): Promise<CustomerSetup | null> | null {
+        return this.pendingCustomer;
+    }
+
+    /**
+     * Set the pending customer creation promise to track ongoing creation
+     * This prevents race conditions when multiple forms initialize simultaneously
+     */
+    public setPendingCustomer(promise: Promise<CustomerSetup | null> | null): void {
+        this.pendingCustomer = promise;
     }
 }
 

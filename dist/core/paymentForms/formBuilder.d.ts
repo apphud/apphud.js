@@ -1,9 +1,11 @@
-import { LifecycleEventName, PaymentFormBuilder, LifecycleEventCallback, PaymentProvider, PaymentProviderFormOptions, User, ProductBundle } from "../../types";
+import { LifecycleEventName, PaymentFormBuilder, LifecycleEventCallback, PaymentProvider, PaymentProviderFormOptions, User, ProductBundle, CustomerSetup } from "../../types";
 declare class FormBuilder implements PaymentFormBuilder {
     private provider;
     private user;
     private events;
     private currentForms;
+    private sharedCustomer;
+    private pendingCustomer;
     constructor(provider: PaymentProvider, user: User);
     /**
      * Generate a unique key for a payment form based on its type
@@ -33,6 +35,26 @@ declare class FormBuilder implements PaymentFormBuilder {
      */
     on(eventName: LifecycleEventName, callback: LifecycleEventCallback): void;
     emit(eventName: LifecycleEventName, event: any): void;
+    /**
+     * Get the shared customer for this payment provider
+     * Used by payment forms to reuse customer across multiple form instances
+     */
+    getSharedCustomer(): CustomerSetup | null;
+    /**
+     * Set the shared customer for this payment provider
+     * Called by payment forms after creating a customer
+     */
+    setSharedCustomer(customer: CustomerSetup): void;
+    /**
+     * Get the pending customer creation promise if one exists
+     * This prevents multiple simultaneous customer creation requests
+     */
+    getPendingCustomer(): Promise<CustomerSetup | null> | null;
+    /**
+     * Set the pending customer creation promise to track ongoing creation
+     * This prevents race conditions when multiple forms initialize simultaneously
+     */
+    setPendingCustomer(promise: Promise<CustomerSetup | null> | null): void;
 }
 export default FormBuilder;
 //# sourceMappingURL=formBuilder.d.ts.map

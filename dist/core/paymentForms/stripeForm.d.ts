@@ -1,4 +1,4 @@
-import { PaymentForm, PaymentProviderFormOptions, User, StripeSubscriptionOptions, ProductBundle, PaymentProvider } from "../../types";
+import { CustomerSetup, PaymentForm, PaymentProviderFormOptions, User, StripeSubscriptionOptions, ProductBundle, PaymentProvider } from "../../types";
 import FormBuilder from "./formBuilder";
 declare class StripeForm implements PaymentForm {
     private user;
@@ -26,7 +26,18 @@ declare class StripeForm implements PaymentForm {
     private applePayButtonHandler;
     private applePayButton;
     private isActive;
-    constructor(user: User, provider: PaymentProvider, formBuilder: FormBuilder);
+    constructor(user: User, provider: PaymentProvider, formBuilder: FormBuilder, sharedCustomer?: CustomerSetup | null);
+    /**
+     * Wait for Stripe to be initialized
+     * Prevents race conditions during form re-initialization
+     * @private
+     */
+    private waitForStripe;
+    /**
+     * Cancel this form instance and prevent any pending async operations from completing.
+     * This is called when a new product is selected while the current form is still initializing.
+     * Prevents race conditions where an old form might attach event listeners after being replaced.
+     */
     cancel(): void;
     private injectStyles;
     private displayError;
