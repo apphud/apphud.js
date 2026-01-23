@@ -53,6 +53,7 @@ export interface Product {
     name: string;
     payment_provider_id: string;
     store: PaymentProviderKind;
+    kind?: PaymentProviderKind;
     created_automatically?: boolean;
     db_id?: string;
     store_id?: string;

@@ -499,7 +499,7 @@ export default class ApphudSDK implements Apphud {
 
         // Process all products in the bundle
         bundle.products.forEach(product => {
-            const requiredStore = product.store;
+            const requiredStore = product.kind;
             
             const compatibleProvider = paymentProviders.find(provider => 
                 provider.kind === requiredStore
