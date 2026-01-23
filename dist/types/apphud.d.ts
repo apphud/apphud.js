@@ -52,8 +52,7 @@ export interface Product {
     base_plan_id: string;
     name: string;
     payment_provider_id: string;
-    store: PaymentProviderKind;
-    kind?: PaymentProviderKind;
+    kind: PaymentProviderKind;
     created_automatically?: boolean;
     db_id?: string;
     store_id?: string;
