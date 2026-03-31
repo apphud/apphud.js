@@ -309,9 +309,9 @@ export default class ApphudSDK implements Apphud {
             if (formOptions.paymentProvider) {
                 // If specific provider requested, use it
                 log("Looking for specified payment provider:", formOptions.paymentProvider);
-                targetProvider = this.currentPaymentProviders.get(formOptions.paymentProvider);
+                targetProvider = this.currentPaymentProviders.get(formOptions.paymentProvider) || this.user?.payment_providers?.find(p => p.kind === formOptions.paymentProvider);
                 if (!targetProvider) {
-                    const errorMessage = `Requested payment provider ${formOptions.paymentProvider} not available`;
+                    const errorMessage = `Payment provider ${formOptions.paymentProvider} requested, but only these found: ${Array.from(this.currentPaymentProviders.keys()).join(', ')}. User has following payment providers: ${this.user?.payment_providers}`;
                     logError(errorMessage, true);
                     // Emit provider not found event
                     this.emit(`${formOptions.paymentProvider}_not_found` as LifecycleEventName, {
