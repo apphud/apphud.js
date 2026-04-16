@@ -1,9 +1,12 @@
 import buble from "@rollup/plugin-buble";
 import commonjs from "@rollup/plugin-commonjs";
-import pkg from "./package.json" assert {type: "json"};
+import { createRequire } from "module";
 import {nodeResolve} from "@rollup/plugin-node-resolve";
 import terser from "@rollup/plugin-terser";
 import typescript from "@rollup/plugin-typescript";
+
+const require = createRequire(import.meta.url);
+const pkg = require("./package.json");
 
 const banner = `
   window.ApphudSDKVersion = '${pkg.version}';
