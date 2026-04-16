@@ -402,6 +402,7 @@ class StripeForm implements PaymentForm {
         let amount = 0;
         let currency = 'usd';
         let productName = 'Subscription';
+        let originalAmount = 0;
         
         // Check if static price is provided in options
         if (options?.applePayConfig?.staticPrice) {
@@ -436,6 +437,8 @@ class StripeForm implements PaymentForm {
                 return;
             }
         }
+
+        originalAmount = amount;
         
         // Get product name based on product configuration
         if (options?.applePayConfig?.productLabel) {
@@ -453,12 +456,19 @@ class StripeForm implements PaymentForm {
         }
         
         // Define payment request for Apple Pay
+        const hasFreeTrial = (this.subscriptionOptions?.trialDays ?? 0) > 0;
+        const totalAmount = hasFreeTrial ? 0 : amount;
+        const totalLabel = hasFreeTrial ? "Due today" : productName;
+
         this.paymentRequest = this.stripe.paymentRequest({
             country: 'US',
             currency: currency,
+            displayItems: hasFreeTrial
+                ? [{ label: `${productName} (after trial)`, amount: originalAmount }]
+                : undefined,
             total: {
-                label: productName,
-                amount: amount,
+                label: totalLabel,
+                amount: totalAmount,
             },
             requestPayerName: options?.applePayConfig?.requestPayerName || false,
             requestPayerEmail: options?.applePayConfig?.requestPayerEmail || false,
