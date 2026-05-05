@@ -10,9 +10,8 @@
     "rootDir": "./src",
     "moduleResolution": "node",
 
-    "declaration": true,          // Generate `.d.ts` files
-    "declarationMap": true,       // Generates source maps for declarations
-    "emitDeclarationOnly": false, // Emit both .js and .d.ts files
+    "declaration": false,
+    "declarationMap": false,
     "sourceMap": true,            // Generate .map files
     "resolveJsonModule": true,    // Support for importing JSON files
     "allowSyntheticDefaultImports": true

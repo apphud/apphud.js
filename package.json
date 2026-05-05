@@ -6,7 +6,6 @@
   "type": "module",
   "main": "./dist/apphud.js",
   "module": "./dist/apphud.esm.js",
-  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "rollup -c",
     "lint": "eslint src",
@@ -26,7 +25,8 @@
     "url": "https://github.com/apphud/apphud.js"
   },
   "files": [
-    "dist"
+    "dist/apphud.js",
+    "dist/apphud.esm.js"
   ],
   "devDependencies": {
     "@eslint/js": "^9.8.0",
