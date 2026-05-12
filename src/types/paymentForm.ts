@@ -32,6 +32,7 @@ export interface PaymentProviderFormOptions {
     onSuccess?: () => void
     stripeAppearance?: StripeAppearanceOptions
     stripePaymentMethods?: string[]
+    stripePaymentFields?: string[]
     stripePaymentWallets?: string[]
     paddleSettings?: PaddleSettingsOptions
     id?: string
