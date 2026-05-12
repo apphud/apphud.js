@@ -666,9 +666,9 @@ class StripeForm implements PaymentForm {
 
         this.elements = this.stripe.elements(elementsOptions)
 
-        const isLinkEnabled = options?.stripePaymentMethods?.includes("link");
-        const isGooglePayEnabled = options?.stripePaymentMethods?.includes("google_pay");
-        const isApplePayEnabled = options?.stripePaymentMethods?.includes("apple_pay");
+        const isLinkEnabled = options?.stripePaymentWallets?.includes("link");
+        const isGooglePayEnabled = options?.stripePaymentWallets?.includes("google_pay");
+        const isApplePayEnabled = options?.stripePaymentWallets?.includes("apple_pay");
 
         // Create payment element options
         const paymentElementOptions: StripePaymentElementOptions = {
