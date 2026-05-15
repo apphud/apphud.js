@@ -9,9 +9,9 @@ const sleep = (ms: number): Promise<void> => {
 }
 
 export const log = (...message: any[]): void => {
-    if (config.debug) {
-        window.console.log(...message);
-    }
+
+    config.debug && window.console.log(...message);
+    
 }
 
 /**
@@ -25,7 +25,7 @@ export const logError = (...args: any[]): void => {
         shouldReport = args.pop() as boolean;
     }
     
-    window.console.error(...args);
+    config.debug && window.console.error(...args);
     
     if (shouldReport && api.reportError) {
         // Convert messages to a single string for reporting

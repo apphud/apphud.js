@@ -22,7 +22,14 @@ const plugins = [
   commonjs(),
   buble({include: ""}),
   terser(),
-  typescript({compilerOptions: {lib: ["es5", "es6", "dom"], target: "es5"}}),
+  typescript({
+    compilerOptions: {
+      lib: ["es5", "es6", "dom"],
+      target: "es5",
+      declaration: false,
+      declarationMap: false
+    }
+  }),
 ]
 export default [
   {

@@ -32,6 +32,22 @@ export interface PaymentProviderFormOptions {
     onSuccess?: () => void
     stripeAppearance?: StripeAppearanceOptions
     stripePaymentMethods?: string[]
+    stripePaymentFields?: {
+        name?: "auto" | "never";
+        email?: "auto" | "never";
+        phone?: "auto" | "never";
+        address?:"auto" | "never" | {
+            line1?: "auto" | "never";
+            line2?: "auto" | "never";
+            city?: "auto" | "never";
+            state?: "auto" | "never";
+            country?: "auto" | "never";
+            postalCode?: "auto" | "never";
+        };
+        
+
+    }
+    stripePaymentWallets?: string[]
     paddleSettings?: PaddleSettingsOptions
     id?: string
     buttonStateSetter?: (state: "loading" | "ready" | "processing" | "error") => void
