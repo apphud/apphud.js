@@ -670,17 +670,13 @@ class StripeForm implements PaymentForm {
         const isGooglePayEnabled = options?.stripePaymentWallets?.includes("google_pay");
         const isApplePayEnabled = options?.stripePaymentWallets?.includes("apple_pay");
 
-        const isCountryField = options?.stripePaymentFields?.includes("country");
+    
 
         // Create payment element options
         const paymentElementOptions: StripePaymentElementOptions = {
             layout: options?.stripeAppearance?.layout,
             fields: {
-                billingDetails: {
-                    address: {
-                        country:isCountryField ? "auto" : "never",
-                    },
-                },
+                billingDetails: options?.stripePaymentFields,
             },
             wallets: {
                 applePay: isApplePayEnabled ? "auto" : "never",
