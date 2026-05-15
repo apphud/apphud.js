@@ -9,6 +9,3 @@ export interface UpsellForm {
      */
     process(options: UpsellSubscriptionOptions, introOffer?: IntroductoryOffer): Promise<boolean>;
 }
-
-// Add this to your types/index.ts to export it
-export * from './upsellForm'; 
