@@ -765,6 +765,10 @@ class StripeForm implements PaymentForm {
         this.submitHandler = async (event) => {
             event.preventDefault()
             this.setButtonState("processing")
+             // Emit success event
+             this.formBuilder.emit("payment_initiated", {
+                paymentProvider: "stripe",
+            })
 
             if (!this.stripe) {
                 logError("Stripe not initialized", true)
