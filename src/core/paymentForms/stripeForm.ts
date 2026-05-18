@@ -889,6 +889,11 @@ class StripeForm implements PaymentForm {
      * @private
      */
     private handleSuccessfulPayment(options?: PaymentProviderFormOptions): void {
+        // Emit success event
+        this.formBuilder.emit("payment_success", {
+            paymentProvider: "stripe",
+        });
+
         // Handle successful subscription
         const deepLink = this.subscription?.deep_link;
         if (deepLink) {
