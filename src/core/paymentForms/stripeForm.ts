@@ -479,6 +479,13 @@ class StripeForm implements PaymentForm {
 
         // Check if Apple Pay is available
         this.paymentRequest.canMakePayment().then((result: any) => {
+            // Bail out if this form was cancelled while canMakePayment was pending
+            // (e.g. user switched products and a new StripeForm took over).
+            if (!this.isActive) {
+                log('Apple Pay init skipped: form was cancelled before canMakePayment resolved');
+                return;
+            }
+
             if (result && result.applePay) {
                 // Call onApplePayAvailable callback directly if provided in options
                 if (options?.applePayConfig?.onApplePayAvailable) {
@@ -504,6 +511,9 @@ class StripeForm implements PaymentForm {
                     
                     // Create handler function
                     this.applePayButtonHandler = () => {
+                        // Defensive: ignore taps after this form has been cancelled
+                        if (!this.isActive) return;
+
                         // Set button state to processing when clicked
                         if (this.buttonStateSetter) {
                             this.buttonStateSetter("processing");
@@ -526,6 +536,15 @@ class StripeForm implements PaymentForm {
         // Handle payment method selection with Apple Pay
         this.paymentRequest.on('paymentmethod', async (event: any) => {
             try {
+                // Defensive: if this form has been cancelled (e.g. product switched
+                // between sheet show and authorize), don't create a subscription
+                // for the previous product.
+                if (!this.isActive) {
+                    event.complete('fail');
+                    log('Apple Pay paymentmethod ignored: form was cancelled');
+                    return;
+                }
+
                 if (!this.customer) {
                     const error = new Error('Customer not initialized');
                     logError('Apple Pay - Customer not initialized', error, true);
@@ -684,6 +703,7 @@ class StripeForm implements PaymentForm {
             wallets: {
                 applePay: isApplePayEnabled ? "auto" : "never",
                 googlePay: isGooglePayEnabled ? "auto" : "never",
+                // @ts-ignore
                 link: isLinkEnabled ? "auto" : "never",
             }
         };
@@ -869,11 +889,6 @@ class StripeForm implements PaymentForm {
      * @private
      */
     private handleSuccessfulPayment(options?: PaymentProviderFormOptions): void {
-        // Emit success event
-        this.formBuilder.emit("payment_success", {
-            paymentProvider: "stripe",
-        });
-
         // Handle successful subscription
         const deepLink = this.subscription?.deep_link;
         if (deepLink) {
