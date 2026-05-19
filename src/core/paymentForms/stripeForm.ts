@@ -343,11 +343,10 @@ class StripeForm implements PaymentForm {
         }
 
         // No existing customer and no ongoing creation, create a new one
-        const defaultPaymentMethods = ['card', 'sepa_debit', 'bancontact'];
         
         const paymentMethods = options.stripePaymentMethods?.length 
             ? options.stripePaymentMethods 
-            : defaultPaymentMethods;
+            : undefined;
 
         log("Creating new customer for user", this.user.id);
         const amplitudeId = getAmplitudeId();
