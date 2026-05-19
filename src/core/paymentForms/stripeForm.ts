@@ -796,8 +796,7 @@ class StripeForm implements PaymentForm {
             }else{ 
                 this.formBuilder.emit("payment_initiated", {
                     paymentProvider: "stripe",
-                })
-                console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!! payment_initiated !!!!!!!!!!!!!!!!!!!!!!!!!!!")      
+                }) 
             }
 
             
