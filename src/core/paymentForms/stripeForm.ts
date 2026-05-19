@@ -703,7 +703,6 @@ class StripeForm implements PaymentForm {
             wallets: {
                 applePay: isApplePayEnabled ? "auto" : "never",
                 googlePay: isGooglePayEnabled ? "auto" : "never",
-                // @ts-ignore
                 link: isLinkEnabled ? "auto" : "never",
             }
         };
