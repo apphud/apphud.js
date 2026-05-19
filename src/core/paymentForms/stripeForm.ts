@@ -687,7 +687,7 @@ class StripeForm implements PaymentForm {
 
         // On the Kit 2.0, Apple Pay was enabled through showApplePayInPaymentElement option.
         const isLegacyApplePayEnabled = options?.applePayConfig?.showApplePayInPaymentElement
-        
+        // On the Kit 3.0, Apple Pay is enabled through stripePaymentWallets
         const isLinkEnabled = options?.stripePaymentWallets?.includes("link");
         const isGooglePayEnabled = options?.stripePaymentWallets?.includes("google_pay");
         const isApplePayEnabled = options?.stripePaymentWallets?.includes("apple_pay") || isLegacyApplePayEnabled;
