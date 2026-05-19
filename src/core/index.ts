@@ -370,7 +370,7 @@ export default class ApphudSDK implements Apphud {
                 this.formBuilders.set(targetProvider.id, builder);
             }
 
-            const formEvents: LifecycleEventName[] = ["payment_form_initialized", "payment_form_ready", "payment_failure", "payment_success"];
+            const formEvents: LifecycleEventName[] = ["payment_form_initialized", "payment_form_ready", "payment_initiated", "payment_failure", "payment_success"];
 
             formEvents.forEach((formEvent) => {
                 builder.on(formEvent, (e) => {

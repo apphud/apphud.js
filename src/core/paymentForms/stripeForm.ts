@@ -343,11 +343,10 @@ class StripeForm implements PaymentForm {
         }
 
         // No existing customer and no ongoing creation, create a new one
-        const defaultPaymentMethods = ['card', 'sepa_debit', 'bancontact'];
         
         const paymentMethods = options.stripePaymentMethods?.length 
             ? options.stripePaymentMethods 
-            : defaultPaymentMethods;
+            : [];
 
         log("Creating new customer for user", this.user.id);
         const amplitudeId = getAmplitudeId();
@@ -687,7 +686,7 @@ class StripeForm implements PaymentForm {
 
         // On the Kit 2.0, Apple Pay was enabled through showApplePayInPaymentElement option.
         const isLegacyApplePayEnabled = options?.applePayConfig?.showApplePayInPaymentElement
-
+        // On the Kit 3.0, Apple Pay is enabled through stripePaymentWallets
         const isLinkEnabled = options?.stripePaymentWallets?.includes("link");
         const isGooglePayEnabled = options?.stripePaymentWallets?.includes("google_pay");
         const isApplePayEnabled = options?.stripePaymentWallets?.includes("apple_pay") || isLegacyApplePayEnabled;
@@ -703,7 +702,6 @@ class StripeForm implements PaymentForm {
             wallets: {
                 applePay: isApplePayEnabled ? "auto" : "never",
                 googlePay: isGooglePayEnabled ? "auto" : "never",
-                // @ts-ignore
                 link: isLinkEnabled ? "auto" : "never",
             }
         };
@@ -785,22 +783,23 @@ class StripeForm implements PaymentForm {
         this.submitHandler = async (event) => {
             event.preventDefault()
             this.setButtonState("processing")
-             // Emit success event
-             this.formBuilder.emit("payment_initiated", {
-                paymentProvider: "stripe",
-            })
-
+            
+        
             if (!this.stripe) {
                 logError("Stripe not initialized", true)
                 this.displayError('Failed to initialize payment form. Please try again.')
                 return
-            }
-
-            if (!this.elements) {
+            }else if (!this.elements) {
                 logError("Elements not initialized", true)
                 this.displayError('Failed to initialize payment form. Please try again.')
                 return
+            }else{ 
+                this.formBuilder.emit("payment_initiated", {
+                    paymentProvider: "stripe",
+                }) 
             }
+
+            
 
             // Step 1: Confirm SetupIntent
             const { error: setupError, setupIntent } = await this.stripe.confirmSetup({
@@ -825,6 +824,8 @@ class StripeForm implements PaymentForm {
 
             // Step 2: Create subscription using the payment method
             try {
+               
+    
                 const paymentMethodId = setupIntent.payment_method as string;
                 await this.createSubscription(
                     this.currentProductId!, 
