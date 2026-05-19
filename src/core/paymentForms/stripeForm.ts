@@ -346,7 +346,7 @@ class StripeForm implements PaymentForm {
         
         const paymentMethods = options.stripePaymentMethods?.length 
             ? options.stripePaymentMethods 
-            : undefined;
+            : [];
 
         log("Creating new customer for user", this.user.id);
         const amplitudeId = getAmplitudeId();
