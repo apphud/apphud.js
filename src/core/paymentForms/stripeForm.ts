@@ -312,6 +312,17 @@ class StripeForm implements PaymentForm {
         }
     }    
 
+    private syncStripeClientSecretToBundle(): void {
+        if (!this.productBundle || !this.customer?.client_secret) {
+            return;
+        }
+
+        const stripeProduct = this.productBundle.products.find(product => product.kind === "stripe");
+        if (stripeProduct) {
+            stripeProduct.client_secret = this.customer.client_secret;
+        }
+    }
+
     private async createCustomer(options: PaymentProviderFormOptions): Promise<void> {
         if (options.applePay) {
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -320,6 +331,7 @@ class StripeForm implements PaymentForm {
         // Check if we already have a customer (from constructor or previous call)
         if (this.customer) {
             log("Reusing existing customer", this.customer.id);
+            this.syncStripeClientSecretToBundle();
             return;
         }
 
@@ -328,6 +340,7 @@ class StripeForm implements PaymentForm {
         if (sharedCustomer) {
             log("Using shared customer from FormBuilder", sharedCustomer.id);
             this.customer = sharedCustomer;
+            this.syncStripeClientSecretToBundle();
             return;
         }
 
@@ -338,6 +351,7 @@ class StripeForm implements PaymentForm {
             this.customer = await pendingCreation;
             if (this.customer) {
                 log("Using customer from pending creation", this.customer.id);
+                this.syncStripeClientSecretToBundle();
                 return;
             }
         }
@@ -379,6 +393,7 @@ class StripeForm implements PaymentForm {
         // Save the customer to FormBuilder so other forms can reuse it
         // This also clears the pending promise
         this.formBuilder.setSharedCustomer(this.customer);
+        this.syncStripeClientSecretToBundle();
     }
     
     /**
