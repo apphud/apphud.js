@@ -1,7 +1,7 @@
 import {deleteCookie, getCookie, setCookie} from '../cookies';
 import {config} from './config/config';
 import api from "./api";
-import u, {canStringify, log, logError, generateSHA256} from "../utils";
+import u, {canStringify, log, logError, generateSHA256, getAmplitudeId} from "../utils";
 import {
     VariableDataAttribute,
     DeepLinkURL,
@@ -35,7 +35,8 @@ import {
     User,
     PaymentProviderKind,
     ProductBundle,
-    UpsellSubscriptionOptions
+    UpsellSubscriptionOptions,
+    CustomerSetup,
 } from '../types'
 
 import UserAgent from 'ua-parser-js'
@@ -56,6 +57,7 @@ export default class ApphudSDK implements Apphud {
     private _currentPlacement: Placement | undefined = undefined
     private _currentPaywall: Paywall | undefined = undefined
     private _currentBundle: ProductBundle | undefined = undefined
+    private _currentCustomer: CustomerSetup | undefined = undefined
     private userID: string | undefined = undefined
     private hashedUserID: string | undefined = undefined
     private isReady: boolean = false
@@ -1169,6 +1171,120 @@ export default class ApphudSDK implements Apphud {
         const deepLink = this.getDeepLink();
         return deepLink ? `${config.baseSuccessURL}/${deepLink}` : config.baseSuccessURL;
     }
+
+    /**
+     * CREATE CUSTOMER
+     * 
+     * This function checks for the existence of the current user, product, and matching payment provider.
+     * It then builds required metadata and sends a request to the backend to create a customer for the selected provider.
+     *
+     * @returns {Promise<CustomerSetup>} A promise resolving to the customer setup information.
+     */
+
+    public  createCustomer = async ()=>{
+         /* Check if  all dependecies are available */
+         const user = this.user;
+         /* → */ if (!user) return logError('No User Available');
+         const product = this.currentProduct();
+         /* → */ if (!product) return logError('No Product Available');
+         const provider = this.currentPaymentProviders.get(product.kind);
+         /* → */ if (!provider) return logError('No Provider Available');
+
+         /* Get Additional IDs */
+        const amplitude_id = getAmplitudeId();
+
+        const payload = {
+            user_id: user.id,
+            metadata: {
+                ...(amplitude_id && { amplitude_id })
+            },
+        };
+
+   
+        
+      
+        /* Call the API */
+        let customer: CustomerSetup;
+        try {
+            customer = await api.createCustomer(provider.id, payload);
+        } catch (error) {
+            logError('Network error creating customer:', error);
+            throw new Error('Failed to create subscription due to network error');
+        }
+        this._currentCustomer = customer
+        return customer;
+
+    }
+     /**
+     * CREATE SUBSCRIPTIOM FROM CURRENT PRODUCT
+     * Get the current product, provider and payment method and create a subscription
+     * @param productId - stripe price_id
+     * @param paywallId - paywall user purchased from
+     * @param placementId - placement id user purchased from
+     * @param customerId - customer id
+     * @param paymentMethodId - payment method id
+     * @private
+     */
+    public async createSubscription(
+        paymentMethodId: string,
+        
+        params?:{
+            trial_period_days?: number;
+            discount_id?: string;
+        }
+    ): Promise<void> {
+
+        const {trial_period_days, discount_id} = params|| {};
+      
+
+        /* Check if  all dependecies are available */
+        const user = this.user;
+        /* → */ if (!user) return logError('No User Available');
+        const product = this.currentProduct();
+        /* → */ if (!product) return logError('No Product Available');
+        const provider = this.currentPaymentProviders.get(product.kind);
+        /* → */ if (!provider) return logError('No Provider Available');
+        const customer = this._currentCustomer
+        /* → */ if (!customer?.id) return logError('No Customer Available');
+        
+        /* Get Additional IDs */
+        const priceId = product.base_plan_id;
+        const amplitude_id = getAmplitudeId();
+        
+        /* Build the payload for API call */
+        const payload = {
+            // Payment Method
+            payment_method_id: paymentMethodId,
+            // Product
+            product_id: priceId,
+            paywall_id: this.currentPaywall()?.id,
+            placement_id: this.currentPlacement()?.id,
+            ...(trial_period_days && { trial_period_days }),
+            ...(discount_id && { discount_id:discount_id }),
+            // User
+            user_id: user.id,
+            customer_id: customer.id,
+            metadata: {
+                ...(amplitude_id && { amplitude_id })
+            },
+        };
+
+        /* Call the API */
+        try {
+            log('Creating subscription for product:', priceId);
+            const subscription = await api.createSubscription(provider.id, payload);
+    
+            if (!subscription) {
+                logError('Failed to create subscription for product:', priceId);
+                return;
+            }
+    
+            log('Subscription created', subscription);
+        } catch (error) {
+            logError('Network error creating subscription:', error);
+            throw new Error('Failed to create subscription due to network error');
+        }
+    }    
 
     /**
      * Creates an upsell subscription using the current placement and bundle
