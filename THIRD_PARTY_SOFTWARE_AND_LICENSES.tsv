@@ -1,0 +1,27 @@
+apphud.js Dependencies												
+Dependency Type	Name	Version	Constraint	Resolved Version	Source / Repo	License(s)	License Class	Reference URL	Notes	Original Table	Source Report
+devDependency	@eslint/js	^9.8.0			npmjs.com	MIT	Permissive	https://github.com/eslint/eslint	npm registry license field	Dependency Inventory	
+devDependency	@paddle/paddle-js	^1.2.1			npmjs.com	Apache-2.0	Permissive	https://developer.paddle.com/paddlejs/overview	no public GitHub repo; homepage used as reference	Dependency Inventory	
+devDependency	@rollup/plugin-buble	^1.0.1			npmjs.com	MIT	Permissive	https://github.com/rollup/plugins/tree/master/packages/plugin-buble	monorepo: rollup/plugins	Dependency Inventory	
+devDependency	@rollup/plugin-commonjs	^24.0.0			npmjs.com	MIT	Permissive	https://github.com/rollup/plugins/tree/master/packages/plugin-commonjs	monorepo: rollup/plugins	Dependency Inventory	
+devDependency	@rollup/plugin-node-resolve	^15.2.3			npmjs.com	MIT	Permissive	https://github.com/rollup/plugins/tree/master/packages/plugin-node-resolve	monorepo: rollup/plugins	Dependency Inventory	
+devDependency	@rollup/plugin-replace	^5.0.7			npmjs.com	MIT	Permissive	https://github.com/rollup/plugins/tree/master/packages/plugin-replace	monorepo: rollup/plugins	Dependency Inventory	
+devDependency	@rollup/plugin-terser	^0.2.1			npmjs.com	MIT	Permissive	https://github.com/rollup/plugins/tree/master/packages/plugin-terser	monorepo: rollup/plugins	Dependency Inventory	
+devDependency	@rollup/plugin-typescript	^11.1.6			npmjs.com	MIT	Permissive	https://github.com/rollup/plugins/tree/master/packages/plugin-typescript	monorepo: rollup/plugins	Dependency Inventory	
+devDependency	@stripe/stripe-js	^4.5.0			npmjs.com	MIT	Permissive	https://github.com/stripe/stripe-js	npm registry license field	Dependency Inventory	
+devDependency	@types/eslint__js	^8.42.3			npmjs.com	MIT	Permissive	https://github.com/DefinitelyTyped/DefinitelyTyped	DefinitelyTyped community type definitions	Dependency Inventory	
+devDependency	@types/node	^22.5.0			npmjs.com	MIT	Permissive	https://github.com/DefinitelyTyped/DefinitelyTyped	DefinitelyTyped community type definitions	Dependency Inventory	
+devDependency	@types/ua-parser-js	^0.7.39			npmjs.com	MIT	Permissive	https://github.com/DefinitelyTyped/DefinitelyTyped	DefinitelyTyped community type definitions	Dependency Inventory	
+devDependency	@typescript-eslint/eslint-plugin	^8.0.1			npmjs.com	MIT	Permissive	https://github.com/typescript-eslint/typescript-eslint	monorepo: typescript-eslint	Dependency Inventory	
+devDependency	@typescript-eslint/parser	^8.0.1			npmjs.com	MIT	Permissive	https://github.com/typescript-eslint/typescript-eslint	monorepo: typescript-eslint	Dependency Inventory	
+devDependency	eslint	^9.8.0			npmjs.com	MIT	Permissive	https://github.com/eslint/eslint	npm registry license field	Dependency Inventory	
+devDependency	eslint-config-prettier	^9.1.0			npmjs.com	MIT	Permissive	https://github.com/prettier/eslint-config-prettier	npm registry license field	Dependency Inventory	
+devDependency	eslint-plugin-prettier	^5.2.1			npmjs.com	MIT	Permissive	https://github.com/prettier/eslint-plugin-prettier	npm registry license field	Dependency Inventory	
+devDependency	prettier	^3.3.3			npmjs.com	MIT	Permissive	https://github.com/prettier/prettier	npm registry license field	Dependency Inventory	
+devDependency	rollup	^3.9.1			npmjs.com	MIT	Permissive	https://github.com/rollup/rollup	npm registry license field	Dependency Inventory	
+devDependency	tslib	^2.6.3			npmjs.com	0BSD	Permissive	https://github.com/Microsoft/tslib	Zero-Clause BSD; maximally permissive	Dependency Inventory	
+devDependency	typedoc	^0.26.7			npmjs.com	Apache-2.0	Permissive	https://github.com/TypeStrong/TypeDoc	npm registry license field	Dependency Inventory	
+devDependency	typedoc-plugin-markdown	^4.2.7			npmjs.com	MIT	Permissive	https://github.com/typedoc2md/typedoc-plugin-markdown	npm registry license field	Dependency Inventory	
+devDependency	typescript	^5.5.4			npmjs.com	Apache-2.0	Permissive	https://github.com/microsoft/TypeScript	npm registry license field	Dependency Inventory	
+devDependency	typescript-eslint	^8.0.1			npmjs.com	MIT	Permissive	https://github.com/typescript-eslint/typescript-eslint	monorepo: typescript-eslint	Dependency Inventory	
+devDependency	ua-parser-js	^1.0.38			npmjs.com	MIT	Permissive	https://github.com/faisalman/ua-parser-js	v1.x = MIT; v2.x = AGPL-3.0-or-later; constraint ^1.0.38 resolves only to MIT versions (1.0.38–1.0.41)	Dependency Inventory	
