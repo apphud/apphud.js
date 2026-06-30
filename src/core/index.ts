@@ -37,6 +37,7 @@ import {
     ProductBundle,
     UpsellSubscriptionOptions,
     CustomerSetup,
+    Subscription,
 } from '../types'
 
 import UserAgent from 'ua-parser-js'
@@ -1232,7 +1233,7 @@ export default class ApphudSDK implements Apphud {
             trial_period_days?: number;
             discount_id?: string;
         }
-    ): Promise<void> {
+    ): Promise<Subscription | void> {
 
         const {trial_period_days, discount_id} = params|| {};
       
@@ -1280,6 +1281,7 @@ export default class ApphudSDK implements Apphud {
             }
     
             log('Subscription created', subscription);
+            return subscription;
         } catch (error) {
             logError('Network error creating subscription:', error);
             throw new Error('Failed to create subscription due to network error');
