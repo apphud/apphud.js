@@ -120,12 +120,12 @@ export default class ApphudSDK implements Apphud {
 
         const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
         this.userID = getCookie(cookieKey) || undefined;
-        
+
         if (!this.userID) {
             // Try to get user ID from URL parameters
             this.userID = u.getUrlParameter('user_id') || u.getUrlParameter('userId') || undefined;
         }
-        
+
         if (!this.userID) {
             this.userID = u.generateId();
 
@@ -167,7 +167,7 @@ export default class ApphudSDK implements Apphud {
         return () => {
             if (this.events[eventName]) {
                 this.events[eventName] = this.events[eventName].filter(cb => cb !== callback);
-                
+
                 // Clean up empty event arrays
                 if (this.events[eventName].length === 0) {
                     delete this.events[eventName];
@@ -203,7 +203,7 @@ export default class ApphudSDK implements Apphud {
 
         const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
         const uid = getCookie(cookieKey);
-        
+
         return uid || undefined;
     }
 
@@ -212,7 +212,7 @@ export default class ApphudSDK implements Apphud {
      */
     public reset(): boolean {
         this.checkInitialization();
-        
+
         deleteCookie(ProductionUserIdKey);
         deleteCookie(DebugUserIdKey);
         deleteCookie(EventsKey);
@@ -228,9 +228,9 @@ export default class ApphudSDK implements Apphud {
      * @param refreshPlacements - whether to refresh placements after tracking (default: false)
      */
     public track(
-        name: string, 
-        properties: ApphudHash, 
-        userProperties: ApphudHash, 
+        name: string,
+        properties: ApphudHash,
+        userProperties: ApphudHash,
         refreshPlacements: boolean = false
     ): boolean {
         this.checkInitialization();
@@ -304,7 +304,7 @@ export default class ApphudSDK implements Apphud {
         this.checkInitialization();
 
         this.ready(async (): Promise<void> => {
-            
+
             const formOptions = options || {};
 
             // Get the appropriate payment provider
@@ -420,7 +420,7 @@ export default class ApphudSDK implements Apphud {
         }
 
         const success = this.updateProductsAndProviders(selectedBundle, this.user?.payment_providers || []);
-        
+
         if (!success) {
             const errorMessage = "Failed to set up payment providers for selected bundle";
             logError(errorMessage, true);
@@ -429,7 +429,7 @@ export default class ApphudSDK implements Apphud {
 
         this.setCurrentItems(placementID, bundleIndex);
         setCookie(SelectedBundleIndex, `${placementID},${bundleIndex}`, SelectedProductDuration);
-        
+
         this.emit("product_changed", this.currentProduct());
     }
 
@@ -444,10 +444,10 @@ export default class ApphudSDK implements Apphud {
         if (this._currentPlacement && this._currentPlacement.paywalls.length > 0) {
             this._currentPaywall = this._currentPlacement.paywalls[0];
             const bundle = this._currentPaywall.items_v2[bundleIndex];
-            
+
             if (bundle) {
                 this._currentBundle = bundle;
-                
+
                 // Check for required price macros
                 if (bundle.properties) {
                     const macrosToCheck = [
@@ -460,8 +460,8 @@ export default class ApphudSDK implements Apphud {
                         'custom-2',
                         'custom-3'
                     ];
-                
-                    const hasPriceMacros = Object.values(bundle.properties).some((langProps: Record<string, string>) => 
+
+                    const hasPriceMacros = Object.values(bundle.properties).some((langProps: Record<string, string>) =>
                         macrosToCheck.some(macro => langProps[macro])
                     );
 
@@ -470,10 +470,10 @@ export default class ApphudSDK implements Apphud {
                         logError(errorMessage, true);
                     }
                 }
-                
+
                 if (bundle.products.length > 0) {
                     const success = this.updateProductsAndProviders(bundle, this.user?.payment_providers || []);
-                    
+
                     if (success) {
                         log("Current placement", this._currentPlacement);
                         log("Current paywall", this._currentPaywall);
@@ -503,11 +503,11 @@ export default class ApphudSDK implements Apphud {
         // Process all products in the bundle
         bundle.products.forEach(product => {
             const requiredStore = product.kind;
-            
-            const compatibleProvider = paymentProviders.find(provider => 
+
+            const compatibleProvider = paymentProviders.find(provider =>
                 provider.kind === requiredStore
             );
-            
+
             if (compatibleProvider) {
                 this._currentProducts.set(requiredStore, product);
                 this.currentPaymentProviders.set(requiredStore, compatibleProvider);
@@ -549,7 +549,7 @@ export default class ApphudSDK implements Apphud {
         this.ready(async (): Promise<void> => {
             const urlParams = this.getQueryParamsAsJson()
             const attributionIds = ['ttclid', 'fbclid', 'gclid']
-            
+
             attributionIds.forEach(id => {
                 if (urlParams[id]) {
                     queryParams.append(id, urlParams[id] as string)
@@ -558,7 +558,7 @@ export default class ApphudSDK implements Apphud {
 
             // prepare apphud attribution data
             const apphudData = this.prepareApphudAttributionData()
-            
+
             // Add all other URL parameters to apphud_attribution_data
             const otherParams = Object.entries(urlParams)
                 .filter(([key]) => !attributionIds.includes(key))
@@ -586,17 +586,17 @@ export default class ApphudSDK implements Apphud {
                 const fbp = getCookie('_fbp')
                 const fbc = getCookie('_fbc')
                 const fbExternalIdSent = getCookie('apphud_fb_external_id_sent')
-                
+
                 if (fbp) queryParams.append('fbp', fbp)
                 if (fbc) queryParams.append('fbc', fbc)
 
                 if (this.hashedUserID && !fbExternalIdSent) {
                     log('set external_id to fb: ', this.hashedUserID);
-                    
+
                     window.fbq('trackCustom', 'ApphudInit', {
                         external_id: this.hashedUserID,
                     });
-                    
+
                     setCookie('apphud_fb_external_id_sent', 'true', UserCookieDuration);
                 }
             }
@@ -615,14 +615,14 @@ export default class ApphudSDK implements Apphud {
     private async retrieveGtagClientIDWithTimeout(timeout: number): Promise<string | null> {
         return new Promise((resolve) => {
             let resolved = false;
-    
+
             const timeoutId = setTimeout(() => {
                 if (!resolved) {
                     resolved = true;
                     resolve(null);
                 }
             }, timeout);
-    
+
             this.waitForGtag().then(() => {
                 const measurementId = this.getGtagMeasurementId();
                 if (!measurementId) {
@@ -630,7 +630,7 @@ export default class ApphudSDK implements Apphud {
                     resolve(null);
                     return;
                 }
-    
+
                 if (typeof window.gtag !== 'undefined') {
                     window.gtag('get', measurementId, 'client_id', (client_id: string) => {
                         if (!resolved) {
@@ -655,14 +655,14 @@ export default class ApphudSDK implements Apphud {
                 resolve(); // Already loaded
                 return;
             }
-    
+
             const timeout = 5000; // 5 seconds timeout
             let elapsed = 0;
             const intervalTime = 100; // Check every 100ms
-    
+
             const interval = setInterval(() => {
                 elapsed += intervalTime;
-    
+
                 if (typeof window.gtag !== 'undefined') {
                     clearInterval(interval);
                     resolve();
@@ -677,7 +677,7 @@ export default class ApphudSDK implements Apphud {
 
     private getGtagMeasurementId(): string | null {
         if (Array.isArray(window.dataLayer)) {
-            const configEvent = window.dataLayer.find(event => 
+            const configEvent = window.dataLayer.find(event =>
                 event[0] === 'config' && typeof event[1] === 'string' && event[1].startsWith('G-')
             );
             if (configEvent) {
@@ -723,10 +723,10 @@ export default class ApphudSDK implements Apphud {
             if (paymentProviders.length === 0) return;
 
             const currentBundle = this._currentBundle;
-            
+
             if (currentBundle) {
                 const success = this.updateProductsAndProviders(currentBundle, paymentProviders);
-                
+
                 if (success && preferredProvider) {
                     const preferredProviderInstance = this.currentPaymentProviders.get(preferredProvider);
                     if (preferredProviderInstance) {
@@ -827,7 +827,7 @@ export default class ApphudSDK implements Apphud {
                     }
                 }
                 this.saveEventQueue()
-                
+
                 this.initializeApp(false, refreshPlacements)
             })
         });
@@ -944,7 +944,7 @@ export default class ApphudSDK implements Apphud {
                             if (!this.isPaywallShown) {
                                 const keyArr = varName.split(',').map(s => s.trim());
                                 let placementID: string | undefined;
-                                
+
                                 if (keyArr.length === 3) {
                                     placementID = keyArr[0];
                                 } else {
@@ -1039,7 +1039,7 @@ export default class ApphudSDK implements Apphud {
         log("Placement", placementID, bundleIndex)
         const paywall = placement.paywalls[0]!
         const bundle = paywall!.items_v2[bundleIndex]
-        
+
         if (bundle !== null && bundle !== undefined && bundle.properties !== undefined) {
             return u.getValueByPath(bundle.properties, path)
         }
@@ -1054,24 +1054,24 @@ export default class ApphudSDK implements Apphud {
      */
     private findPlacementByID(id: string): Placement | undefined {
         const placement = this.placements.find(elm => elm.identifier === id);
-        
+
         if (!placement) {
             if (!this.reportedPlacementErrors.has(id)) {
                 const existingIdentifiers = this.placements.map(p => p.identifier);
                 const errorMessage = `Requested placement with identifier "${id}" but only these placements were found: [${existingIdentifiers.join(', ')}].`;
-                
+
                 this.reportedPlacementErrors.add(id);
-                
+
                 logError(errorMessage, true);
             }
         }
-        
+
         return placement;
     }
 
     public currentBundle(): ProductBundle | null {
         this.checkInitialization();
-        
+
         if (this._currentBundle)
             return this._currentBundle
 
@@ -1087,7 +1087,7 @@ export default class ApphudSDK implements Apphud {
 
     public currentProduct(): Product | null {
         this.checkInitialization();
-        
+
         // Return the first available product
         const firstProduct = Array.from(this._currentProducts.values())[0];
         return firstProduct || null;
@@ -1135,7 +1135,7 @@ export default class ApphudSDK implements Apphud {
 
     public currentPaywall(): Paywall | null {
         this.checkInitialization();
-        
+
         if (this._currentPaywall)
             return this._currentPaywall
 
@@ -1168,14 +1168,14 @@ export default class ApphudSDK implements Apphud {
      */
     public getSuccessURL(): string {
         this.checkInitialization();
-        
+
         const deepLink = this.getDeepLink();
         return deepLink ? `${config.baseSuccessURL}/${deepLink}` : config.baseSuccessURL;
     }
 
     /**
      * CREATE CUSTOMER
-     * 
+     *
      * This function checks for the existence of the current user, product, and matching payment provider.
      * It then builds required metadata and sends a request to the backend to create a customer for the selected provider.
      *
@@ -1201,9 +1201,9 @@ export default class ApphudSDK implements Apphud {
             },
         };
 
-   
-        
-      
+
+
+
         /* Call the API */
         let customer: CustomerSetup;
         try {
@@ -1228,7 +1228,7 @@ export default class ApphudSDK implements Apphud {
      */
     public async createSubscription(
         paymentMethodId: string,
-        
+
         params?:{
             trial_period_days?: number;
             discount_id?: string;
@@ -1236,7 +1236,7 @@ export default class ApphudSDK implements Apphud {
     ): Promise<Subscription | void> {
 
         const {trial_period_days, discount_id} = params|| {};
-      
+
 
         /* Check if  all dependecies are available */
         const user = this.user;
@@ -1245,13 +1245,19 @@ export default class ApphudSDK implements Apphud {
         /* → */ if (!product) return logError('No Product Available');
         const provider = this.currentPaymentProviders.get(product.kind);
         /* → */ if (!provider) return logError('No Provider Available');
-        const customer = this._currentCustomer
-        /* → */ if (!customer?.id) return logError('No Customer Available');
-        
+
+        /* Customer ID */
+        // Get the current Customer ID
+        // Fetch if not yet available
+        const currentCustomerId = this._currentCustomer?.id
+        const createdCustomer = !currentCustomerId && await this.createCustomer()
+        const customerId = currentCustomerId || (createdCustomer && createdCustomer.id)
+        if (!customerId)  return logError('No Customer Available');
+
         /* Get Additional IDs */
         const priceId = product.base_plan_id;
         const amplitude_id = getAmplitudeId();
-        
+
         /* Build the payload for API call */
         const payload = {
             // Payment Method
@@ -1264,7 +1270,7 @@ export default class ApphudSDK implements Apphud {
             ...(discount_id && { discount_id:discount_id }),
             // User
             user_id: user.id,
-            customer_id: customer.id,
+            customer_id: customerId,
             metadata: {
                 ...(amplitude_id && { amplitude_id })
             },
@@ -1274,19 +1280,19 @@ export default class ApphudSDK implements Apphud {
         try {
             log('Creating subscription for product:', priceId);
             const subscription = await api.createSubscription(provider.id, payload);
-    
+
             if (!subscription) {
                 logError('Failed to create subscription for product:', priceId);
                 return;
             }
-    
+
             log('Subscription created', subscription);
             return subscription;
         } catch (error) {
             logError('Network error creating subscription:', error);
             throw new Error('Failed to create subscription due to network error');
         }
-    }    
+    }
 
     /**
      * Creates an upsell subscription using the current placement and bundle
@@ -1299,16 +1305,16 @@ export default class ApphudSDK implements Apphud {
 
         const upsellButton = document.querySelector(`[${UpsellButtonAttribute}]`);
         let upsellPlacementId: string | null = null;
-        
+
         if (upsellButton) {
             upsellPlacementId = upsellButton.getAttribute(UpsellButtonAttribute);
             log("Found upsell button with placement ID:", upsellPlacementId);
         }
-        
+
         // If upsellPlacementId exists and is different from current placement
-        if (upsellPlacementId && 
+        if (upsellPlacementId &&
             (!this._currentPlacement || this._currentPlacement.identifier !== upsellPlacementId)) {
-            
+
             log("Upsell placement is different from current placement, switching to upsell placement");
             this.selectPlacementProduct(upsellPlacementId, 0);
         }
@@ -1337,7 +1343,7 @@ export default class ApphudSDK implements Apphud {
             }
 
             let paymentProviderType = getCookie(PaymentProviderKey);
-            
+
             if (!paymentProviderType) {
                 const availableProviders = Array.from(this.currentPaymentProviders.keys());
                 if (availableProviders.length > 0) {
@@ -1365,21 +1371,21 @@ export default class ApphudSDK implements Apphud {
                 bundle,
                 product.base_plan_id
             );
-            
+
             const upsellEvents: LifecycleEventName[] = [
-                "upsell_initiated", 
-                "upsell_success", 
+                "upsell_initiated",
+                "upsell_success",
                 "upsell_failure"
             ];
-            
+
             upsellEvents.forEach(eventName => {
                 upsellBuilder.on(eventName, (event) => {
                     this.emit(eventName, event);
                 });
             });
-            
+
             return await upsellBuilder.process(options);
-            
+
         } catch (error) {
             logError("Failed to create upsell subscription:", error, true);
             return false;
