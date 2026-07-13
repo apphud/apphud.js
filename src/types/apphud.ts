@@ -67,6 +67,7 @@ export interface Product {
     created_automatically?: boolean
     db_id?: string
     store_id?: string
+    client_secret?: string
 }
 
 export interface ProductBundle {
