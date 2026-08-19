@@ -334,8 +334,15 @@ export default class ApphudSDK implements Apphud {
                 return;
             }
 
-            // Get the product for this provider
-            const targetProduct = this.currentProductForProvider(targetProvider.kind);
+            // Get the product for this provider.
+            // Kit can call paymentForm before selectPlacementProduct has run;
+            // restore saved/first placement so Stripe still initializes.
+            let targetProduct = this.currentProductForProvider(targetProvider.kind);
+
+            if (!targetProduct) {
+                this.ensureCurrentItemsSelected();
+                targetProduct = this.currentProductForProvider(targetProvider.kind);
+            }
 
             if (!targetProduct) {
                 logError("Payment form: product is required", true);
@@ -404,33 +411,35 @@ export default class ApphudSDK implements Apphud {
 
         log("Save placement and bundle", placementID, bundleIndex);
 
-        const placement = this.findPlacementByID(placementID);
-        if (!placement || placement.paywalls.length === 0) {
-            const errorMessage = "No placement or paywall found for ID: " + placementID;
-            logError(errorMessage, true);
-            return;
-        }
+        this.ready((): void => {
+            const placement = this.findPlacementByID(placementID);
+            if (!placement || placement.paywalls.length === 0) {
+                const errorMessage = "No placement or paywall found for ID: " + placementID;
+                logError(errorMessage, true);
+                return;
+            }
 
-        const paywall = placement.paywalls[0];
-        const selectedBundle = paywall.items_v2[bundleIndex];
-        if (!selectedBundle) {
-            const errorMessage = "No product bundle found at index: " + bundleIndex;
-            logError(errorMessage, true);
-            return;
-        }
+            const paywall = placement.paywalls[0];
+            const selectedBundle = paywall.items_v2[bundleIndex];
+            if (!selectedBundle) {
+                const errorMessage = "No product bundle found at index: " + bundleIndex;
+                logError(errorMessage, true);
+                return;
+            }
 
-        const success = this.updateProductsAndProviders(selectedBundle, this.user?.payment_providers || []);
+            const success = this.updateProductsAndProviders(selectedBundle, this.user?.payment_providers || []);
 
-        if (!success) {
-            const errorMessage = "Failed to set up payment providers for selected bundle";
-            logError(errorMessage, true);
-            return;
-        }
+            if (!success) {
+                const errorMessage = "Failed to set up payment providers for selected bundle";
+                logError(errorMessage, true);
+                return;
+            }
 
-        this.setCurrentItems(placementID, bundleIndex);
-        setCookie(SelectedBundleIndex, `${placementID},${bundleIndex}`, SelectedProductDuration);
+            this.setCurrentItems(placementID, bundleIndex);
+            setCookie(SelectedBundleIndex, `${placementID},${bundleIndex}`, SelectedProductDuration);
 
-        this.emit("product_changed", this.currentProduct());
+            this.emit("product_changed", this.currentProduct());
+        });
     }
 
     /**
@@ -718,26 +727,24 @@ export default class ApphudSDK implements Apphud {
      * @private
      */
     private setPaymentProvider(preferredProvider?: PaymentProviderKind): void {
-        this.ready((): void => {
-            const paymentProviders = this.user?.payment_providers || [];
-            if (paymentProviders.length === 0) return;
+        const paymentProviders = this.user?.payment_providers || [];
+        if (paymentProviders.length === 0) return;
 
-            const currentBundle = this._currentBundle;
+        const currentBundle = this._currentBundle;
 
-            if (currentBundle) {
-                const success = this.updateProductsAndProviders(currentBundle, paymentProviders);
+        if (currentBundle) {
+            const success = this.updateProductsAndProviders(currentBundle, paymentProviders);
 
-                if (success && preferredProvider) {
-                    const preferredProviderInstance = this.currentPaymentProviders.get(preferredProvider);
-                    if (preferredProviderInstance) {
-                        this.emit("payment_provider_changed", {
-                            provider: preferredProviderInstance,
-                            reason: "user_selection"
-                        });
-                    }
+            if (success && preferredProvider) {
+                const preferredProviderInstance = this.currentPaymentProviders.get(preferredProvider);
+                if (preferredProviderInstance) {
+                    this.emit("payment_provider_changed", {
+                        provider: preferredProviderInstance,
+                        reason: "user_selection"
+                    });
                 }
             }
-        });
+        }
     }
 
     /**
@@ -755,15 +762,27 @@ export default class ApphudSDK implements Apphud {
      * @private
      */
     private setPlacementsAndProducts(): void {
-        this.ready((): void => {
-            this.placements = this.user?.placements || []
+        this.placements = this.user?.placements || []
 
-            log("Placements", this.placements)
-            const saved = this.getSavedPlacementBundleIndex()
+        log("Placements", this.placements)
+        const saved = this.getSavedPlacementBundleIndex()
 
-            if (saved.placementID)
-                this.setCurrentItems(saved.placementID, saved.bundleIndex)
-        })
+        if (saved.placementID)
+            this.setCurrentItems(saved.placementID, saved.bundleIndex)
+    }
+
+    /**
+     * Restore current placement/bundle/product if Kit selected them before customers loaded.
+     */
+    private ensureCurrentItemsSelected(): void {
+        if (this.currentProduct()) {
+            return;
+        }
+
+        const saved = this.getSavedPlacementBundleIndex();
+        if (saved.placementID) {
+            this.setCurrentItems(saved.placementID, saved.bundleIndex);
+        }
     }
 
     /**
@@ -772,11 +791,12 @@ export default class ApphudSDK implements Apphud {
      */
     private setReady(initial: boolean = false): void {
         log("set ready")
+        this.isReady = true;
+
         let callback;
         while ((callback = this.queue.shift())) {
             callback();
         }
-        this.isReady = true;
 
         if (initial) {
             this.emit("ready", this)
