@@ -1,5 +1,6 @@
 declare global {
     interface Window {
+        ApphudSDKVersion?: string;
         gtag: (...args: any[]) => void;
         gaGlobal: {
             vid: string

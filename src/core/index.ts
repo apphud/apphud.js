@@ -105,6 +105,9 @@ export default class ApphudSDK implements Apphud {
         }
         config.headers = api.baseHeaders()
 
+        const sdkVersion = window.ApphudSDKVersion || "unknown";
+        window.console.log(`Started Apphud JS SDK (${sdkVersion})`);
+
         // push events from queue
         try {
             this.eventQueue = JSON.parse(getCookie(EventsKey) || "[]");
@@ -192,19 +195,18 @@ export default class ApphudSDK implements Apphud {
     }
 
     /**
-     * Get current User ID from cookies based on environment
+     * Get current User ID. Prefers the in-memory value set during init,
+     * then falls back to the environment cookie.
      */
     public getUserID(): string | undefined {
         this.checkInitialization();
 
-        if (this.userID && config.disableCookies) {
+        if (this.userID) {
             return this.userID;
         }
 
         const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
-        const uid = getCookie(cookieKey);
-
-        return uid || undefined;
+        return getCookie(cookieKey) || undefined;
     }
 
     /**
@@ -247,8 +249,9 @@ export default class ApphudSDK implements Apphud {
         log('event', event);
 
         this.ready((): void => {
-            event.user_id = this.getUserID();
-            event.device_id = this.getUserID();
+            const userId = this.getUserID();
+            event.user_id = userId;
+            event.device_id = userId;
 
             this.eventQueue.push(event);
             this.saveEventQueue();
@@ -345,7 +348,9 @@ export default class ApphudSDK implements Apphud {
             }
 
             if (!targetProduct) {
-                logError("Payment form: product is required", true);
+                // Kit can call paymentForm before selectPlacementProduct; a later
+                // call initializes the form. Do not report this race to the backend.
+                log("Payment form: product is required");
                 return;
             }
 
@@ -765,14 +770,12 @@ export default class ApphudSDK implements Apphud {
         this.placements = this.user?.placements || []
 
         log("Placements", this.placements)
-        const saved = this.getSavedPlacementBundleIndex()
-
-        if (saved.placementID)
-            this.setCurrentItems(saved.placementID, saved.bundleIndex)
+        this.ensureCurrentItemsSelected()
     }
 
     /**
      * Restore current placement/bundle/product if Kit selected them before customers loaded.
+     * Falls back to the first placement so paymentForm can initialize before HiddenField runs.
      */
     private ensureCurrentItemsSelected(): void {
         if (this.currentProduct()) {
@@ -780,8 +783,10 @@ export default class ApphudSDK implements Apphud {
         }
 
         const saved = this.getSavedPlacementBundleIndex();
-        if (saved.placementID) {
-            this.setCurrentItems(saved.placementID, saved.bundleIndex);
+        const placementID = saved.placementID || this.placements[0]?.identifier;
+
+        if (placementID) {
+            this.setCurrentItems(placementID, saved.bundleIndex);
         }
     }
 
@@ -814,20 +819,23 @@ export default class ApphudSDK implements Apphud {
     }
 
     /**
-     * Adds device_id, user_id to event
+     * Builds the /v1/events payload. user_id / device_id live on the
+     * request, not on each event. Does not mutate the queued event so
+     * retries still have identifiers.
      * @param event - event data
      * @private
      */
     private eventData(event: EventData): Events {
-        const data: Events = {
-            events: [event],
-            device_id: event.device_id,
-            user_id: event.user_id,
-        }
-        delete event.device_id;
-        delete event.user_id;
+        const userId = event.user_id || this.getUserID();
+        const eventCopy: EventData = { ...event };
+        delete eventCopy.user_id;
+        delete eventCopy.device_id;
 
-        return data;
+        return {
+            events: [eventCopy],
+            device_id: event.device_id || userId,
+            user_id: userId,
+        };
     }
 
     /**
@@ -838,10 +846,22 @@ export default class ApphudSDK implements Apphud {
      */
     private trackEvent(event: EventData, refreshPlacements: boolean = false): void {
         this.ready(async (): Promise<void> => {
-            api.createEvent(this.eventData(event)).then(() => {
+            if (!event.user_id) {
+                event.user_id = this.getUserID();
+                event.device_id = event.device_id || event.user_id;
+            }
+
+            const payload = this.eventData(event);
+
+            if (!payload.user_id) {
+                logError("Cannot track event: user_id is missing", true);
+                return;
+            }
+
+            api.createEvent(payload).then(() => {
                 // remove from queue
                 for (let i = 0; i < this.eventQueue.length; i++) {
-                    if (this.eventQueue[i].id === event.id) {
+                    if (this.eventQueue[i].insert_id === event.insert_id) {
                         this.eventQueue.splice(i, 1)
                         break
                     }
