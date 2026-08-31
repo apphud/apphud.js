@@ -339,7 +339,7 @@ export default class ApphudSDK implements Apphud {
 
             // Get the product for this provider.
             // Kit can call paymentForm before selectPlacementProduct has run;
-            // restore saved/first placement so Stripe still initializes.
+            // restore a previously saved placement if one exists.
             let targetProduct = this.currentProductForProvider(targetProvider.kind);
 
             if (!targetProduct) {
@@ -354,12 +354,12 @@ export default class ApphudSDK implements Apphud {
                 return;
             }
 
-            if (!this.currentPaywall()) {
+            if (!this._currentPaywall) {
                 logError("Payment form: paywall is required", true);
                 return;
             }
 
-            if (!this.currentPlacement()) {
+            if (!this._currentPlacement) {
                 logError("Payment form: placement is required", true);
                 return;
             }
@@ -402,7 +402,7 @@ export default class ApphudSDK implements Apphud {
             });
 
             log("Show payment form for product:", productId);
-            await builder.show(productId, this.currentPaywall()!.id, this.currentPlacement()!.id, formOptions, this._currentBundle);
+            await builder.show(productId, this._currentPaywall!.id, this._currentPlacement!.id, formOptions, this._currentBundle);
         });
     }
 
@@ -775,7 +775,8 @@ export default class ApphudSDK implements Apphud {
 
     /**
      * Restore current placement/bundle/product if Kit selected them before customers loaded.
-     * Falls back to the first placement so paymentForm can initialize before HiddenField runs.
+     * Does not fall back to the first placement — that would override the
+     * customer-provided placement from HiddenField / selectPlacementProduct.
      */
     private ensureCurrentItemsSelected(): void {
         if (this.currentProduct()) {
@@ -783,10 +784,8 @@ export default class ApphudSDK implements Apphud {
         }
 
         const saved = this.getSavedPlacementBundleIndex();
-        const placementID = saved.placementID || this.placements[0]?.identifier;
-
-        if (placementID) {
-            this.setCurrentItems(placementID, saved.bundleIndex);
+        if (saved.placementID) {
+            this.setCurrentItems(saved.placementID, saved.bundleIndex);
         }
     }
 
