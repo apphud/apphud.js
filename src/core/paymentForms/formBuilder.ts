@@ -23,7 +23,7 @@ class FormBuilder implements PaymentFormBuilder {
     constructor(
         private provider: PaymentProvider,
         private user: User,
-        private onProviderChange?: (provider: PaymentProvider) => void
+        private resolveFallbackProvider?: (failedProvider: PaymentProvider) => PaymentProvider | undefined
     ) {}
 
     /**
@@ -156,14 +156,23 @@ class FormBuilder implements PaymentFormBuilder {
     }
 
     /**
-     * Switch to a different account of the same provider kind and drop the
-     * cached Stripe customer. Used after a 422 on POST /subscriptions.
+     * Move to another account of the same provider kind after the current one
+     * rejected a subscription, dropping the cached Stripe customer.
+     * Which account to use is decided by the SDK, which remembers accounts that
+     * already failed. Returns undefined when there is nothing to switch to.
      */
-    public switchProvider(provider: PaymentProvider): void {
-        log("Switching payment provider account", this.provider.id, "->", provider.id);
-        this.provider = provider;
+    public switchToFallbackProvider(): PaymentProvider | undefined {
+        const nextProvider = this.resolveFallbackProvider?.(this.provider);
+
+        if (!nextProvider) {
+            return undefined;
+        }
+
+        log("Switching payment provider account", this.provider.id, "->", nextProvider.id);
+        this.provider = nextProvider;
         this.clearSharedCustomer();
-        this.onProviderChange?.(provider);
+
+        return nextProvider;
     }
 
     /**

@@ -61,7 +61,6 @@ class StripeForm implements PaymentForm {
     private applePayButton: HTMLElement | null = null;
     private isActive: boolean = true;
     private formOptions: PaymentProviderFormOptions = {};
-    private failedProviderIds: Set<string> = new Set();
 
     constructor(
         private user: User, 
@@ -402,24 +401,6 @@ class StripeForm implements PaymentForm {
         this.syncStripeClientSecretToBundle();
     }
 
-    private findNextStripeProvider(): PaymentProvider | undefined {
-        const providers = this.user.payment_providers || [];
-        const isSandboxCustomer = Boolean(this.user.is_sandbox || config.debug);
-        const others = providers.filter(
-            provider =>
-                provider.kind === "stripe"
-                && provider.id !== this.provider.id
-                && !this.failedProviderIds.has(provider.id)
-        );
-
-        if (others.length === 0) {
-            return undefined;
-        }
-
-        const preferredMode = isSandboxCustomer ? "sandbox" : "live";
-        return others.find(provider => provider.mode === preferredMode) || others[0];
-    }
-
     private forgetStripeCustomer(): void {
         this.customer = null;
         this.subscription = null;
@@ -445,9 +426,7 @@ class StripeForm implements PaymentForm {
      */
     private async recoverFromUnprocessableSubscription(): Promise<boolean> {
         try {
-            this.failedProviderIds.add(this.provider.id);
-
-            const nextProvider = this.findNextStripeProvider();
+            const nextProvider = this.formBuilder.switchToFallbackProvider();
             if (!nextProvider) {
                 logError("Subscription 422: no alternative Stripe account to switch to", true);
                 return false;
@@ -457,7 +436,6 @@ class StripeForm implements PaymentForm {
 
             this.forgetStripeCustomer();
             this.provider = nextProvider;
-            this.formBuilder.switchProvider(nextProvider);
 
             const loaded = await this.reloadStripe();
             if (!loaded) {

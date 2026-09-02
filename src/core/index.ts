@@ -71,6 +71,10 @@ export default class ApphudSDK implements Apphud {
     private reportedPlacementErrors: Set<string> = new Set();
     private isUpsellPaywallShown: boolean = false;
     private formBuilders: Map<string, FormBuilder> = new Map();
+    // Payment provider accounts that rejected a subscription in this session.
+    // Kept on the SDK so that a new form or a plan change does not send the
+    // customer back to an account that is already known to fail.
+    private failedProviderIds: Set<string> = new Set();
     // private params = new URLSearchParams(window.location.search);
 
     constructor() {}
@@ -382,9 +386,12 @@ export default class ApphudSDK implements Apphud {
             // Initialize FormBuilder if it doesn't exist or if provider has changed
             let builder = this.formBuilders.get(targetProvider.id);
             if (!builder) {
-                const createdBuilder = new FormBuilder(targetProvider, this.user, (nextProvider) => {
-                    this.currentPaymentProviders.set(nextProvider.kind, nextProvider);
-                    this._currentCustomer = undefined;
+                const createdBuilder = new FormBuilder(targetProvider, this.user, (failedProvider) => {
+                    const nextProvider = this.switchToFallbackProvider(failedProvider);
+
+                    if (!nextProvider) {
+                        return undefined;
+                    }
 
                     for (const [key, value] of this.formBuilders.entries()) {
                         if (value === createdBuilder) {
@@ -393,10 +400,7 @@ export default class ApphudSDK implements Apphud {
                     }
                     this.formBuilders.set(nextProvider.id, createdBuilder);
 
-                    this.emit("payment_provider_changed", {
-                        provider: nextProvider,
-                        reason: "subscription_unprocessable"
-                    });
+                    return nextProvider;
                 });
                 builder = createdBuilder;
                 this.formBuilders.set(targetProvider.id, builder);
@@ -530,12 +534,15 @@ export default class ApphudSDK implements Apphud {
      */
     private selectCompatibleProvider(
         kind: PaymentProviderKind,
-        paymentProviders: PaymentProvider[],
-        excludeIds: Set<string> = new Set()
+        paymentProviders: PaymentProvider[]
     ): PaymentProvider | undefined {
-        const candidates = paymentProviders.filter(
-            provider => provider.kind === kind && !excludeIds.has(provider.id)
-        );
+        const ofKind = paymentProviders.filter(provider => provider.kind === kind);
+
+        // Accounts that already rejected a subscription are skipped, but only
+        // while a healthy one is left: a known-bad account still beats a
+        // checkout with no provider at all.
+        const healthy = ofKind.filter(provider => !this.failedProviderIds.has(provider.id));
+        const candidates = healthy.length > 0 ? healthy : ofKind;
 
         if (candidates.length === 0) {
             return undefined;
@@ -555,6 +562,40 @@ export default class ApphudSDK implements Apphud {
         }
 
         return candidates[0];
+    }
+
+    /**
+     * Remember that a provider rejected a subscription and move its kind onto
+     * another account. Returns undefined when there is nothing to switch to,
+     * in which case the failed provider stays selected.
+     */
+    private switchToFallbackProvider(failedProvider: PaymentProvider): PaymentProvider | undefined {
+        this.failedProviderIds.add(failedProvider.id);
+        this._currentCustomer = undefined;
+
+        const nextProvider = this.selectCompatibleProvider(
+            failedProvider.kind,
+            this.user?.payment_providers || []
+        );
+
+        // selectCompatibleProvider falls back to failed accounts when nothing
+        // healthy is left, which is fine for keeping a checkout alive but would
+        // bounce the customer between the same two accounts here.
+        if (!nextProvider || this.failedProviderIds.has(nextProvider.id)) {
+            log("No alternative payment provider available after 422:", failedProvider.id);
+            return undefined;
+        }
+
+        this.currentPaymentProviders.set(failedProvider.kind, nextProvider);
+
+        this.emit("payment_provider_changed", {
+            provider: nextProvider,
+            reason: "subscription_unprocessable"
+        });
+
+        log("Switched payment provider after 422:", nextProvider.id, nextProvider.identifier);
+
+        return nextProvider;
     }
 
     /**
@@ -1383,22 +1424,7 @@ export default class ApphudSDK implements Apphud {
         } catch (error) {
             if (isUnprocessableEntityError(error)) {
                 logError('Subscription rejected (422), forgetting customer and switching provider:', error.message);
-                this._currentCustomer = undefined;
-
-                const nextProvider = this.selectCompatibleProvider(
-                    product.kind,
-                    this.user?.payment_providers || [],
-                    new Set([provider.id])
-                );
-
-                if (nextProvider) {
-                    this.currentPaymentProviders.set(product.kind, nextProvider);
-                    this.emit("payment_provider_changed", {
-                        provider: nextProvider,
-                        reason: "subscription_unprocessable"
-                    });
-                    log("Switched payment provider after 422:", nextProvider.id, nextProvider.identifier);
-                }
+                this.switchToFallbackProvider(provider);
 
                 throw error;
             }
