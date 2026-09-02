@@ -20,7 +20,11 @@ class FormBuilder implements PaymentFormBuilder {
     private sharedCustomer: CustomerSetup | null = null; // Shared across all forms for this provider
     private pendingCustomer: Promise<CustomerSetup | null> | null = null; // Track pending customer creation
 
-    constructor(private provider: PaymentProvider, private user: User) {}
+    constructor(
+        private provider: PaymentProvider,
+        private user: User,
+        private onProviderChange?: (provider: PaymentProvider) => void
+    ) {}
 
     /**
      * Generate a unique key for a payment form based on its type
@@ -149,6 +153,27 @@ class FormBuilder implements PaymentFormBuilder {
         if (this.events[eventName]) {
             this.events[eventName].forEach(callback => callback(event));
         }
+    }
+
+    /**
+     * Switch to a different account of the same provider kind and drop the
+     * cached Stripe customer. Used after a 422 on POST /subscriptions.
+     */
+    public switchProvider(provider: PaymentProvider): void {
+        log("Switching payment provider account", this.provider.id, "->", provider.id);
+        this.provider = provider;
+        this.clearSharedCustomer();
+        this.onProviderChange?.(provider);
+    }
+
+    /**
+     * Drop the cached Stripe customer so the next form creates a new one
+     * on the current payment provider account.
+     */
+    public clearSharedCustomer(): void {
+        this.sharedCustomer = null;
+        this.pendingCustomer = null;
+        log("Shared customer cleared for provider:", this.provider.kind);
     }
 
     /**

@@ -38,6 +38,7 @@ import {
     UpsellSubscriptionOptions,
     CustomerSetup,
     Subscription,
+    isUnprocessableEntityError,
 } from '../types'
 
 import UserAgent from 'ua-parser-js'
@@ -381,7 +382,23 @@ export default class ApphudSDK implements Apphud {
             // Initialize FormBuilder if it doesn't exist or if provider has changed
             let builder = this.formBuilders.get(targetProvider.id);
             if (!builder) {
-                builder = new FormBuilder(targetProvider, this.user);
+                const createdBuilder = new FormBuilder(targetProvider, this.user, (nextProvider) => {
+                    this.currentPaymentProviders.set(nextProvider.kind, nextProvider);
+                    this._currentCustomer = undefined;
+
+                    for (const [key, value] of this.formBuilders.entries()) {
+                        if (value === createdBuilder) {
+                            this.formBuilders.delete(key);
+                        }
+                    }
+                    this.formBuilders.set(nextProvider.id, createdBuilder);
+
+                    this.emit("payment_provider_changed", {
+                        provider: nextProvider,
+                        reason: "subscription_unprocessable"
+                    });
+                });
+                builder = createdBuilder;
                 this.formBuilders.set(targetProvider.id, builder);
             }
 
@@ -502,6 +519,44 @@ export default class ApphudSDK implements Apphud {
         }
     }
 
+    private isSandboxCustomer(): boolean {
+        return Boolean(this.user?.is_sandbox || config.debug);
+    }
+
+    /**
+     * Pick a payment provider of the given kind.
+     * When several accounts of the same kind exist, sandbox customers prefer
+     * mode "sandbox" and live customers prefer mode "live".
+     */
+    private selectCompatibleProvider(
+        kind: PaymentProviderKind,
+        paymentProviders: PaymentProvider[],
+        excludeIds: Set<string> = new Set()
+    ): PaymentProvider | undefined {
+        const candidates = paymentProviders.filter(
+            provider => provider.kind === kind && !excludeIds.has(provider.id)
+        );
+
+        if (candidates.length === 0) {
+            return undefined;
+        }
+
+        if (candidates.length > 1) {
+            const preferredMode = this.isSandboxCustomer() ? "sandbox" : "live";
+            const preferredProvider = candidates.find(provider => provider.mode === preferredMode);
+            if (preferredProvider) {
+                log(
+                    `Preferring ${preferredMode} payment provider`,
+                    preferredProvider.id,
+                    preferredProvider.identifier
+                );
+                return preferredProvider;
+            }
+        }
+
+        return candidates[0];
+    }
+
     /**
      * Updates the current products and payment providers maps based on the given bundle
      * @param bundle - The product bundle to process
@@ -518,9 +573,7 @@ export default class ApphudSDK implements Apphud {
         bundle.products.forEach(product => {
             const requiredStore = product.kind;
 
-            const compatibleProvider = paymentProviders.find(provider =>
-                provider.kind === requiredStore
-            );
+            const compatibleProvider = this.selectCompatibleProvider(requiredStore, paymentProviders);
 
             if (compatibleProvider) {
                 this._currentProducts.set(requiredStore, product);
@@ -1328,6 +1381,28 @@ export default class ApphudSDK implements Apphud {
             log('Subscription created', subscription);
             return subscription;
         } catch (error) {
+            if (isUnprocessableEntityError(error)) {
+                logError('Subscription rejected (422), forgetting customer and switching provider:', error.message);
+                this._currentCustomer = undefined;
+
+                const nextProvider = this.selectCompatibleProvider(
+                    product.kind,
+                    this.user?.payment_providers || [],
+                    new Set([provider.id])
+                );
+
+                if (nextProvider) {
+                    this.currentPaymentProviders.set(product.kind, nextProvider);
+                    this.emit("payment_provider_changed", {
+                        provider: nextProvider,
+                        reason: "subscription_unprocessable"
+                    });
+                    log("Switched payment provider after 422:", nextProvider.id, nextProvider.identifier);
+                }
+
+                throw error;
+            }
+
             logError('Network error creating subscription:', error);
             throw new Error('Failed to create subscription due to network error');
         }

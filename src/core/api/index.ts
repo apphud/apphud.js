@@ -12,7 +12,9 @@ import {
     SuccessMessage,
     AttributionData,
     CustomerSetup,
-    CustomerParams
+    CustomerParams,
+    HttpError,
+    isUnprocessableEntityError
 } from "../../types";
 import router from "./router";
 
@@ -120,12 +122,29 @@ const sendRequest = async (method: string, url: string, data?: ApphudHash | null
         try {
             const response = await fetch(url, fetchParams)
 
+            // 422 is a business-logic rejection (wrong Stripe account, invalid price,
+            // etc). Retrying the same payload is useless; surface it immediately.
+            if (response.status === 422) {
+                let body: BackendResponse | null = null
+                try {
+                    body = await response.json() as BackendResponse
+                } catch {
+                    // ignore unreadable body
+                }
+                const message = body?.errors?.[0]?.title || "Unprocessable Entity"
+                throw new HttpError(422, body, message)
+            }
+
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
 
             return await response.json() as BackendResponse;
         } catch (error) {
+            if (isUnprocessableEntityError(error)) {
+                throw error
+            }
+
             console.error('Attempt failed:', error);
 
             if (retryCount < (config.httpRetriesCount || 3)) {

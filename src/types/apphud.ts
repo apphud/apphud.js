@@ -30,12 +30,15 @@ export interface User {
 
 export type PaymentProviderKind = "stripe" | "paddle"
 export type AttributionData = Record<string, string | Record<string, null | string | string[]>>
+export type PaymentProviderMode = "live" | "sandbox"
+
 export interface PaymentProvider {
     id: string
     identifier: string
     kind: PaymentProviderKind
     name: string,
     token?: string
+    mode?: PaymentProviderMode
 }
 
 export interface Placement {

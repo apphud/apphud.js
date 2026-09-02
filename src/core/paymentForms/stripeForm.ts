@@ -6,7 +6,7 @@ import {
     SelectedProductDuration,
     PaymentProviderKey
 } from "../config/constants"
-import {CustomerSetup, PaymentForm, PaymentProviderFormOptions, Subscription, User, StripeSubscriptionOptions, ProductBundle, PaymentProvider} from "../../types"
+import {CustomerSetup, PaymentForm, PaymentProviderFormOptions, Subscription, User, StripeSubscriptionOptions, ProductBundle, PaymentProvider, isUnprocessableEntityError} from "../../types"
 import {
     loadStripe,
     Stripe,
@@ -60,6 +60,8 @@ class StripeForm implements PaymentForm {
     private applePayButtonHandler: ((event: Event) => void) | null = null;
     private applePayButton: HTMLElement | null = null;
     private isActive: boolean = true;
+    private formOptions: PaymentProviderFormOptions = {};
+    private failedProviderIds: Set<string> = new Set();
 
     constructor(
         private user: User, 
@@ -173,6 +175,7 @@ class StripeForm implements PaymentForm {
         this.currentPaywallId = paywallId;
         this.currentPlacementId = placementId;
         this.subscriptionOptions = subscriptionOptions;
+        this.formOptions = options;
         this.formBuilder.emit("payment_form_initialized", { paymentProvider: "stripe", event: { selector: "#apphud-stripe-payment-form" } })
         this.buttonStateSetter = options.buttonStateSetter
 
@@ -307,6 +310,9 @@ class StripeForm implements PaymentForm {
     
             log('Subscription created', this.subscription);
         } catch (error) {
+            if (isUnprocessableEntityError(error)) {
+                throw error;
+            }
             logError('Network error creating subscription:', error);
             throw new Error('Failed to create subscription due to network error');
         }
@@ -394,6 +400,96 @@ class StripeForm implements PaymentForm {
         // This also clears the pending promise
         this.formBuilder.setSharedCustomer(this.customer);
         this.syncStripeClientSecretToBundle();
+    }
+
+    private findNextStripeProvider(): PaymentProvider | undefined {
+        const providers = this.user.payment_providers || [];
+        const isSandboxCustomer = Boolean(this.user.is_sandbox || config.debug);
+        const others = providers.filter(
+            provider =>
+                provider.kind === "stripe"
+                && provider.id !== this.provider.id
+                && !this.failedProviderIds.has(provider.id)
+        );
+
+        if (others.length === 0) {
+            return undefined;
+        }
+
+        const preferredMode = isSandboxCustomer ? "sandbox" : "live";
+        return others.find(provider => provider.mode === preferredMode) || others[0];
+    }
+
+    private forgetStripeCustomer(): void {
+        this.customer = null;
+        this.subscription = null;
+        this.formBuilder.clearSharedCustomer();
+        log("Forgot Stripe customer for provider", this.provider.id);
+    }
+
+    private async reloadStripe(): Promise<boolean> {
+        if (!this.provider.token) {
+            logError("Missing Stripe provider token after account switch", true);
+            return false;
+        }
+
+        this.stripe = await loadStripe(this.provider.token, {stripeAccount: this.provider.identifier});
+        return this.stripe !== null;
+    }
+
+    /**
+     * After POST /subscriptions returns 422, drop the customer created on the
+     * wrong Stripe account and re-initialize checkout on a different account.
+     * Does not replay the failed subscription request: the payment method is
+     * bound to the original account, so the customer must authorize again.
+     */
+    private async recoverFromUnprocessableSubscription(): Promise<boolean> {
+        try {
+            this.failedProviderIds.add(this.provider.id);
+
+            const nextProvider = this.findNextStripeProvider();
+            if (!nextProvider) {
+                logError("Subscription 422: no alternative Stripe account to switch to", true);
+                return false;
+            }
+
+            log("Subscription 422: switching Stripe account", this.provider.id, "->", nextProvider.id, nextProvider.identifier);
+
+            this.forgetStripeCustomer();
+            this.provider = nextProvider;
+            this.formBuilder.switchProvider(nextProvider);
+
+            const loaded = await this.reloadStripe();
+            if (!loaded) {
+                return false;
+            }
+
+            await this.createCustomer(this.formOptions);
+            if (!this.customer) {
+                logError("Failed to create customer on fallback Stripe account", true);
+                return false;
+            }
+
+            this.cleanupFormListeners();
+
+            if (this.formOptions.applePay) {
+                this.initializeApplePay(this.formOptions);
+            } else {
+                this.initStripe(this.formOptions);
+                await this.setupForm(this.formOptions);
+            }
+
+            if (this.buttonStateSetter) {
+                this.buttonStateSetter("ready");
+            } else if (this.submit) {
+                this.setButtonState("ready");
+            }
+
+            return true;
+        } catch (error) {
+            logError("Failed to recover from unprocessable subscription:", error, true);
+            return false;
+        }
     }
     
     /**
@@ -631,8 +727,18 @@ class StripeForm implements PaymentForm {
                 this.handleSuccessfulPayment(options);
                 
             } catch (error) {
-                logError("Apple Pay - Payment processing error:", error, true);
                 event.complete('fail');
+
+                if (isUnprocessableEntityError(error)) {
+                    logError("Apple Pay - Subscription 422, switching Stripe account:", error.message, true);
+                    const recovered = await this.recoverFromUnprocessableSubscription();
+                    if (recovered) {
+                        log("Apple Pay ready on fallback Stripe account. Customer must authorize again.");
+                        return;
+                    }
+                }
+
+                logError("Apple Pay - Payment processing error:", error, true);
                 this.displayError((error as Error).message || 'Payment failed');
                 
                 // Reset button state on error
@@ -850,6 +956,15 @@ class StripeForm implements PaymentForm {
                     paymentMethodId
                 );
             } catch (error) {
+                if (isUnprocessableEntityError(error)) {
+                    logError("Subscription 422, switching Stripe account:", error.message)
+                    const recovered = await this.recoverFromUnprocessableSubscription();
+                    if (recovered) {
+                        this.displayError("Please try again.")
+                        return
+                    }
+                }
+
                 logError("Subscription creation failed:", error)
                 this.setButtonState("error")
                 this.displayError("Failed to create subscription. Please try again.")
