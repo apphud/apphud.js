@@ -38,7 +38,9 @@ export default [
       name: outputName,
       file: `dist/${outputName}.js`,
       format: "umd",
-      banner: minBanner
+      exports: "default",
+      banner: minBanner,
+      footer: "if(typeof window!==\"undefined\"&&window.apphud&&typeof window.apphud.init!==\"function\"&&window.apphud.default){window.apphud=window.apphud.default;}if(typeof window!==\"undefined\"&&window.apphud){window.ApphudSDK=window.apphud;}"
     },
     plugins: plugins
   },

@@ -38,8 +38,8 @@ import {
     UpsellSubscriptionOptions,
     CustomerSetup,
     Subscription,
-    isUnprocessableEntityError,
 } from '../types'
+import { isUnprocessableEntityError } from "./api/httpError";
 
 import UserAgent from 'ua-parser-js'
 import FormBuilder from "./paymentForms/formBuilder";

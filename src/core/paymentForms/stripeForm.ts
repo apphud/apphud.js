@@ -6,7 +6,8 @@ import {
     SelectedProductDuration,
     PaymentProviderKey
 } from "../config/constants"
-import {CustomerSetup, PaymentForm, PaymentProviderFormOptions, Subscription, User, StripeSubscriptionOptions, ProductBundle, PaymentProvider, isUnprocessableEntityError} from "../../types"
+import {CustomerSetup, PaymentForm, PaymentProviderFormOptions, Subscription, User, StripeSubscriptionOptions, ProductBundle, PaymentProvider} from "../../types"
+import { isUnprocessableEntityError } from "../api/httpError"
 import {
     loadStripe,
     Stripe,

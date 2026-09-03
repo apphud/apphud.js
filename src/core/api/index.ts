@@ -12,10 +12,9 @@ import {
     SuccessMessage,
     AttributionData,
     CustomerSetup,
-    CustomerParams,
-    HttpError,
-    isUnprocessableEntityError
+    CustomerParams
 } from "../../types";
+import { HttpError, isUnprocessableEntityError } from "./httpError";
 import router from "./router";
 
 /**
