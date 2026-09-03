@@ -90,7 +90,7 @@ export default class ApphudSDK implements Apphud {
      * @param options
      */
     public async init(options: Config): Promise<void> {
-        log('init', options)
+        log('Starting Apphud SDK', options)
 
         const placeholderKeys = [
             "your_api_key",
@@ -111,7 +111,7 @@ export default class ApphudSDK implements Apphud {
         config.headers = api.baseHeaders()
 
         const sdkVersion = window.ApphudSDKVersion || "unknown";
-        window.console.log(`Started Apphud JS SDK (${sdkVersion})`);
+        window.console.log(`Successfully started Apphud JS SDK (${sdkVersion})`);
 
         // push events from queue
         try {

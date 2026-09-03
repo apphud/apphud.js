@@ -1,6 +1,6 @@
 {
   "name": "apphud.js",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "homepage": "https://apphud.com",
   "description": "Apphud Web-to-Web SDK",
   "type": "module",
