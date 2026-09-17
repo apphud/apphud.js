@@ -75,6 +75,15 @@ export default class ApphudSDK implements Apphud {
     // Kept on the SDK so that a new form or a plan change does not send the
     // customer back to an account that is already known to fail.
     private failedProviderIds: Set<string> = new Set();
+    private applePayStatus: {
+        status: "checking" | "unsupported" | "needs_setup" | "ready"
+        canPay: boolean
+        deviceSupported: boolean
+    } = {
+        status: "checking",
+        canPay: false,
+        deviceSupported: false,
+    };
     // private params = new URLSearchParams(window.location.search);
 
     constructor() {}
@@ -212,6 +221,17 @@ export default class ApphudSDK implements Apphud {
 
         const cookieKey = config.debug ? DebugUserIdKey : ProductionUserIdKey;
         return getCookie(cookieKey) || undefined;
+    }
+
+    /**
+     * Last Apple Pay wallet status reported by the payment form.
+     */
+    public getApplePayStatus(): {
+        status: "checking" | "unsupported" | "needs_setup" | "ready"
+        canPay: boolean
+        deviceSupported: boolean
+    } {
+        return { ...this.applePayStatus };
     }
 
     /**
@@ -406,10 +426,26 @@ export default class ApphudSDK implements Apphud {
                 this.formBuilders.set(targetProvider.id, builder);
             }
 
-            const formEvents: LifecycleEventName[] = ["payment_form_initialized", "payment_form_ready", "payment_initiated", "payment_failure", "payment_success"];
+            const formEvents: LifecycleEventName[] = [
+                "payment_form_initialized",
+                "payment_form_ready",
+                "payment_initiated",
+                "payment_failure",
+                "payment_success",
+                "apple_pay_available",
+                "apple_pay_status",
+                "pay_sheet_failed",
+            ];
 
             formEvents.forEach((formEvent) => {
                 builder.on(formEvent, (e) => {
+                    if (formEvent === "apple_pay_status" && e?.event) {
+                        this.applePayStatus = {
+                            status: e.event.status,
+                            canPay: !!e.event.canPay,
+                            deviceSupported: !!e.event.deviceSupported,
+                        };
+                    }
                     this.emit(formEvent, e);
                 });
 

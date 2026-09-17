@@ -214,6 +214,16 @@ export interface Apphud {
      * @param {LifecycleEventCallback} callback - The callback to execute when the event occurs.
      */
     on: (eventName: LifecycleEventName, callback: LifecycleEventCallback) => void;
+
+    /**
+     * Last resolved Apple Pay wallet status for the current page.
+     * checking until the dedicated Apple Pay form reports a result.
+     */
+    getApplePayStatus: () => {
+        status: "checking" | "unsupported" | "needs_setup" | "ready"
+        canPay: boolean
+        deviceSupported: boolean
+    };
 }
 
 export type Config = {
@@ -271,4 +281,4 @@ export interface CustomerData {
     page_url: string
     user_agent: string
 }
-export type LifecycleEventName = "payment_form_initialized" | "ready" | "payment_form_ready" | "payment_initiated" | "payment_success" | "payment_failure" | "product_changed" | "payment_provider_changed" | "upsell_initiated" | "upsell_success" | "upsell_failure" | "apple_pay_available"
+export type LifecycleEventName = "payment_form_initialized" | "ready" | "payment_form_ready" | "payment_initiated" | "payment_success" | "payment_failure" | "product_changed" | "payment_provider_changed" | "upsell_initiated" | "upsell_success" | "upsell_failure" | "apple_pay_available" | "apple_pay_status" | "pay_sheet_failed"
