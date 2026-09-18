@@ -31,7 +31,15 @@ function isSheetShowing(paymentRequest: PaymentRequestLike): boolean {
     }
 }
 
-function tryShowPaymentRequest(paymentRequest: PaymentRequestLike): boolean {
+function tryShowPaymentRequest(
+    paymentRequest: PaymentRequestLike,
+    stripeCanMakePayment?: boolean
+): boolean {
+    // Stripe throws IntegrationError if show() runs after canMakePayment() === false.
+    if (stripeCanMakePayment === false) {
+        return false
+    }
+
     try {
         paymentRequest.show()
 
@@ -69,7 +77,10 @@ function startPaymentSetup(merchantIdentifier?: string): Promise<boolean> | null
 export function beginPresentApplePay(
     options: BeginPresentApplePayOptions
 ): BeginPresentApplePayResult {
-    const shown = tryShowPaymentRequest(options.paymentRequest)
+    const shown = tryShowPaymentRequest(
+        options.paymentRequest,
+        options.stripeCanMakePayment
+    )
     let setupStarted = false
     let setupPromise: Promise<boolean> | null = null
 

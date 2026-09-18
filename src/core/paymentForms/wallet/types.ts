@@ -17,6 +17,7 @@ export type BeginPresentApplePayOptions = {
     paymentRequest: PaymentRequestLike
     merchantIdentifier?: string
     status: ApplePayStatus
+    stripeCanMakePayment?: boolean
 }
 
 export type BeginPresentApplePayResult = {
