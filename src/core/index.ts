@@ -76,7 +76,7 @@ export default class ApphudSDK implements Apphud {
     // customer back to an account that is already known to fail.
     private failedProviderIds: Set<string> = new Set();
     private applePayStatus: {
-        status: "checking" | "unsupported" | "needs_setup" | "ready"
+        status: "checking" | "unsupported" | "ready"
         deviceSupported: boolean
     } = {
         status: "checking",
@@ -225,7 +225,7 @@ export default class ApphudSDK implements Apphud {
      * Last Apple Pay wallet status reported by the payment form.
      */
     public getApplePayStatus(): {
-        status: "checking" | "unsupported" | "needs_setup" | "ready"
+        status: "checking" | "unsupported" | "ready"
         deviceSupported: boolean
     } {
         return { ...this.applePayStatus };

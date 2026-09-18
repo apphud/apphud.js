@@ -165,7 +165,7 @@ class StripeForm implements PaymentForm {
     private emitApplePayStatus(status: ApplePayStatus): void {
         const payload = {
             status,
-            deviceSupported: status === "ready" || status === "needs_setup",
+            deviceSupported: status === "ready",
             buttonId: this.elementIDs.applePayButton,
         }
 
@@ -206,13 +206,10 @@ class StripeForm implements PaymentForm {
         } else if (status === "unsupported") {
             applePayConfig?.onApplePayUnavailable?.()
             log("Apple Pay is not supported on this device/browser")
-        } else if (status === "needs_setup") {
-            applePayConfig?.onApplePayNeedsSetup?.()
-            log("Apple Pay is supported but Wallet has no card")
         }
 
         if (!applePayButton) {
-            if (status === "ready" || status === "needs_setup") {
+            if (status === "ready") {
                 logError("Apple Pay button element not found with ID: " + this.elementIDs.applePayButton, true)
             }
             return
@@ -224,7 +221,7 @@ class StripeForm implements PaymentForm {
 
         this.applePayButton = applePayButton
 
-        if (status === "ready" || status === "needs_setup") {
+        if (status === "ready") {
             applePayButton.style.display = "block"
         }
 
@@ -702,29 +699,10 @@ class StripeForm implements PaymentForm {
         this.applePayStatus = "checking";
         this.emitApplePayStatus("checking");
 
-        const merchantIdentifier = options?.applePayConfig?.merchantIdentifier;
-
-        resolveApplePayStatus(
-            () => this.paymentRequest!.canMakePayment(),
-            merchantIdentifier
-        ).then((resolved) => {
-            if (!this.isActive) {
-                log('Apple Pay init skipped: form was cancelled before availability resolved');
-                return;
-            }
-
-            this.applePayStatus = resolved.status;
-            this.emitApplePayStatus(resolved.status);
-            this.bindApplePayButton(options, resolved.status);
-        }).catch((error) => {
-            logError('Error checking Apple Pay availability:', error, true);
-            if (!this.isActive) {
-                return;
-            }
-            this.applePayStatus = "unsupported";
-            this.emitApplePayStatus("unsupported");
-            this.bindApplePayButton(options, "unsupported");
-        });
+        const resolved = resolveApplePayStatus()
+        this.applePayStatus = resolved.status;
+        this.emitApplePayStatus(resolved.status);
+        this.bindApplePayButton(options, resolved.status);
         
         // Handle payment method selection with Apple Pay
         this.paymentRequest.on('paymentmethod', async (event: any) => {

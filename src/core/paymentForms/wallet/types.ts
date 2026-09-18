@@ -1,4 +1,4 @@
-export type ApplePayStatus = "checking" | "unsupported" | "needs_setup" | "ready"
+export type ApplePayStatus = "checking" | "unsupported" | "ready"
 
 export type ApplePayStatusPayload = {
     status: ApplePayStatus

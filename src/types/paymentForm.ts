@@ -65,7 +65,6 @@ export interface PaymentProviderFormOptions {
         requestPayerPhone?: boolean;
         onApplePayAvailable?: (isAvailable: boolean) => void;
         onApplePayUnavailable?: () => void;
-        onApplePayNeedsSetup?: () => void;
         merchantIdentifier?: string;
         showApplePayInPaymentElement?: boolean;
     };

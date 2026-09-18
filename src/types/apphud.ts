@@ -220,7 +220,7 @@ export interface Apphud {
      * checking until the dedicated Apple Pay form reports a result.
      */
     getApplePayStatus: () => {
-        status: "checking" | "unsupported" | "needs_setup" | "ready"
+        status: "checking" | "unsupported" | "ready"
         deviceSupported: boolean
     };
 }
