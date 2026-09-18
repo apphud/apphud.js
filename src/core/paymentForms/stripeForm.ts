@@ -700,9 +700,22 @@ class StripeForm implements PaymentForm {
         this.emitApplePayStatus("checking");
 
         const resolved = resolveApplePayStatus()
-        this.applePayStatus = resolved.status;
-        this.emitApplePayStatus(resolved.status);
-        this.bindApplePayButton(options, resolved.status);
+
+        // Stripe rejects show() unless canMakePayment() has already run.
+        // The result is ignored: Safari cannot reliably report an empty Wallet.
+        const bindWhenStripeReady = () => {
+            if (!this.isActive) {
+                return
+            }
+
+            this.applePayStatus = resolved.status
+            this.emitApplePayStatus(resolved.status)
+            this.bindApplePayButton(options, resolved.status)
+        }
+
+        void this.paymentRequest.canMakePayment()
+            .then(bindWhenStripeReady)
+            .catch(bindWhenStripeReady)
         
         // Handle payment method selection with Apple Pay
         this.paymentRequest.on('paymentmethod', async (event: any) => {
