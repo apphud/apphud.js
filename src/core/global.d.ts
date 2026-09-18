@@ -1,5 +1,12 @@
 declare global {
     interface Window {
+        ApplePaySession?: {
+            canMakePayments?: () => boolean
+            applePayCapabilities?: (merchantIdentifier: string) => Promise<{
+                paymentCredentialStatus?: string
+            }>
+            openPaymentSetup?: (merchantIdentifier: string) => Promise<boolean>
+        };
         ApphudSDKVersion?: string;
         gtag: (...args: any[]) => void;
         gaGlobal: {
