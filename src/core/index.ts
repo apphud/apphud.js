@@ -77,11 +77,9 @@ export default class ApphudSDK implements Apphud {
     private failedProviderIds: Set<string> = new Set();
     private applePayStatus: {
         status: "checking" | "unsupported" | "needs_setup" | "ready"
-        canPay: boolean
         deviceSupported: boolean
     } = {
         status: "checking",
-        canPay: false,
         deviceSupported: false,
     };
     // private params = new URLSearchParams(window.location.search);
@@ -228,7 +226,6 @@ export default class ApphudSDK implements Apphud {
      */
     public getApplePayStatus(): {
         status: "checking" | "unsupported" | "needs_setup" | "ready"
-        canPay: boolean
         deviceSupported: boolean
     } {
         return { ...this.applePayStatus };
@@ -442,7 +439,6 @@ export default class ApphudSDK implements Apphud {
                     if (formEvent === "apple_pay_status" && e?.event) {
                         this.applePayStatus = {
                             status: e.event.status,
-                            canPay: !!e.event.canPay,
                             deviceSupported: !!e.event.deviceSupported,
                         };
                     }

@@ -2,7 +2,6 @@ export type ApplePayStatus = "checking" | "unsupported" | "needs_setup" | "ready
 
 export type ApplePayStatusPayload = {
     status: ApplePayStatus
-    canPay: boolean
     deviceSupported: boolean
     buttonId?: string
 }

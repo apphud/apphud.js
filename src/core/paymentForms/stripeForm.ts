@@ -24,7 +24,6 @@ import FormBuilder from "./formBuilder";
 import {
     ApplePayStatus,
     beginPresentApplePay,
-    canPayFromStatus,
     completePresentApplePay,
     resolveApplePayStatus,
 } from "./wallet"
@@ -166,7 +165,6 @@ class StripeForm implements PaymentForm {
     private emitApplePayStatus(status: ApplePayStatus): void {
         const payload = {
             status,
-            canPay: canPayFromStatus(status),
             deviceSupported: status === "ready" || status === "needs_setup",
             buttonId: this.elementIDs.applePayButton,
         }

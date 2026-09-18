@@ -221,7 +221,6 @@ export interface Apphud {
      */
     getApplePayStatus: () => {
         status: "checking" | "unsupported" | "needs_setup" | "ready"
-        canPay: boolean
         deviceSupported: boolean
     };
 }

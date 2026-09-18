@@ -31,10 +31,6 @@ export function isApplePayDeviceSupported(): boolean {
     }
 }
 
-export function canPayFromStatus(status: ApplePayStatus): boolean {
-    return status === "ready"
-}
-
 type CanMakePaymentResult = { applePay?: boolean } | null | undefined
 
 /**
