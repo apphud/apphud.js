@@ -29,14 +29,23 @@ export function isApplePayDeviceSupported(): boolean {
 }
 
 /**
- * Resolve wallet status. Safari cannot reliably tell “has a card” from
- * “device can use Apple Pay”, so this is only unsupported vs ready.
+ * unsupported: Apple Pay cannot be used for checkout on this page.
+ *   - Device/browser has no ApplePaySession (Chrome, Windows, …), or
+ *   - Stripe PaymentRequest.canMakePayment() is false (this Safari
+ *     profile will not open the sheet).
+ * ready: device can use Apple Pay and Stripe can present it.
  */
-export function resolveApplePayStatus(): { status: ApplePayStatus; deviceSupported: boolean } {
+export function resolveApplePayStatus(
+    stripeCanMakePayment?: boolean
+): { status: ApplePayStatus; deviceSupported: boolean } {
     const deviceSupported = isApplePayDeviceSupported()
 
     if (!deviceSupported) {
         return { status: "unsupported", deviceSupported: false }
+    }
+
+    if (stripeCanMakePayment === false) {
+        return { status: "unsupported", deviceSupported: true }
     }
 
     return { status: "ready", deviceSupported: true }
