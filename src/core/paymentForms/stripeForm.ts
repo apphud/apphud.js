@@ -68,7 +68,8 @@ class StripeForm implements PaymentForm {
     private applePayButtonHandler: ((event: Event) => void) | null = null;
     private applePayButton: HTMLElement | null = null;
     private applePayStatus: ApplePayStatus = "checking";
-    private stripeCanMakePayment = false;
+    private stripeCanMakePayment: boolean | null = null;
+    private canMakePaymentPromise: Promise<boolean> | null = null;
     private isActive: boolean = true;
     private formOptions: PaymentProviderFormOptions = {};
     private static readonly STRIPE_SUBMIT_TIMEOUT_MS = 15000;
@@ -215,11 +216,14 @@ class StripeForm implements PaymentForm {
         apply()
     }
 
-    private bindApplePayButton(options: PaymentProviderFormOptions, status: ApplePayStatus): void {
-        const applePayConfig = options.applePayConfig
-        const applePayButton = document.getElementById(this.elementIDs.applePayButton)
+    private applyApplePayAvailability(stripeCanMakePayment: boolean): void {
+        this.stripeCanMakePayment = stripeCanMakePayment
+        const resolved = resolveApplePayStatus(stripeCanMakePayment)
+        this.applePayStatus = resolved.status
+        this.emitApplePayStatus(resolved.status, resolved.deviceSupported)
 
-        if (status === "ready") {
+        const applePayConfig = this.formOptions.applePayConfig
+        if (resolved.status === "ready") {
             applePayConfig?.onApplePayAvailable?.(true)
             this.formBuilder.emit("apple_pay_available", {
                 paymentProvider: "stripe",
@@ -228,15 +232,16 @@ class StripeForm implements PaymentForm {
                     buttonId: this.elementIDs.applePayButton,
                 },
             })
-        } else if (status === "unsupported") {
+        } else if (resolved.status === "unsupported") {
             applePayConfig?.onApplePayUnavailable?.()
             log("Apple Pay is not available for checkout")
         }
+    }
+
+    private bindApplePayButton(options: PaymentProviderFormOptions): void {
+        const applePayButton = document.getElementById(this.elementIDs.applePayButton)
 
         if (!applePayButton) {
-            if (status === "ready") {
-                logError("Apple Pay button element not found with ID: " + this.elementIDs.applePayButton, true)
-            }
             return
         }
 
@@ -245,10 +250,7 @@ class StripeForm implements PaymentForm {
         }
 
         this.applePayButton = applePayButton
-
-        if (status === "ready") {
-            applePayButton.style.display = "block"
-        }
+        applePayButton.style.display = "block"
 
         this.applePayButtonHandler = () => {
             if (!this.isActive) {
@@ -257,13 +259,13 @@ class StripeForm implements PaymentForm {
 
             this.displayError("")
 
-            if (status === "unsupported") {
+            if (this.applePayStatus === "unsupported") {
                 this.displayError("Apple Pay isn’t available on this device. Use card checkout.")
                 return
             }
 
             if (!this.paymentRequest) {
-                this.displayError("Apple Pay didn’t open. Try again or pay with a card.")
+                this.resetApplePayButtonState()
                 return
             }
 
@@ -271,17 +273,14 @@ class StripeForm implements PaymentForm {
                 this.buttonStateSetter("processing")
             }
 
-            this.presentApplePayFromTap(options, status)
+            this.presentApplePayFromTap(options)
         }
 
         this.applePayButton.addEventListener("click", this.applePayButtonHandler)
     }
 
-    private presentApplePayFromTap(
-        options: PaymentProviderFormOptions,
-        status: ApplePayStatus
-    ): void {
-        const finish = (stripeCanMakePayment: boolean) => {
+    private presentApplePayFromTap(options: PaymentProviderFormOptions): void {
+        const openSheet = () => {
             if (!this.isActive || !this.paymentRequest) {
                 this.resetApplePayButtonState()
                 return
@@ -290,8 +289,8 @@ class StripeForm implements PaymentForm {
             const beginResult = beginPresentApplePay({
                 paymentRequest: this.paymentRequest,
                 merchantIdentifier: options.applePayConfig?.merchantIdentifier,
-                status,
-                stripeCanMakePayment,
+                status: this.applePayStatus,
+                stripeCanMakePayment: true,
             })
 
             void completePresentApplePay(
@@ -316,34 +315,44 @@ class StripeForm implements PaymentForm {
                 this.formBuilder.emit("pay_sheet_failed", {
                     paymentProvider: "stripe",
                     event: {
-                        status,
+                        status: this.applePayStatus,
                         buttonId: this.elementIDs.applePayButton,
                     },
                 })
-                this.displayError("Apple Pay didn’t open. Try again or pay with a card.")
+                this.displayError("Tap Apple Pay again.")
                 this.resetApplePayButtonState()
             })
         }
 
-        if (this.stripeCanMakePayment) {
-            finish(true)
+        if (this.stripeCanMakePayment === true) {
+            openSheet()
             return
         }
 
-        log("Apple Pay: Stripe Payment Request unavailable at load; rechecking on tap")
-
-        if (!this.setupApplePayPaymentRequest(options) || !this.paymentRequest) {
-            finish(false)
+        if (this.stripeCanMakePayment === false) {
+            this.resetApplePayButtonState()
             return
         }
 
-        void this.paymentRequest.canMakePayment()
-            .then((result) => {
-                const ok = !!(result && result.applePay)
-                this.stripeCanMakePayment = ok
-                finish(ok)
-            })
-            .catch(() => finish(false))
+        // Still checking. Do not show() after this await — Safari drops the
+        // user gesture and the sheet fails with "Tap Apple Pay again."
+        const pending = this.canMakePaymentPromise
+        if (!pending) {
+            this.resetApplePayButtonState()
+            return
+        }
+
+        void pending.then((canPay) => {
+            if (!this.isActive) {
+                return
+            }
+
+            if (this.applePayStatus === "checking") {
+                this.applyApplePayAvailability(canPay)
+            }
+
+            this.resetApplePayButtonState()
+        })
     }
 
     /**
@@ -410,6 +419,12 @@ class StripeForm implements PaymentForm {
             }
             return;
         }
+
+        // Bind Apple Pay before customer creation so canMakePayment finishes
+        // sooner and the first tap is more likely to be a ready, sync show().
+        if (options.applePay) {
+            this.initializeApplePay(options);
+        }
         
         // Create customer
         await this.createCustomer(options);
@@ -419,12 +434,6 @@ class StripeForm implements PaymentForm {
         if (!options.applePay) {
             this.initStripe(options);
             this.setupForm(options);
-        }
-        
-        // Initialize Apple Pay if product bundle exists 
-        // Only enable Apple Pay when explicitly requested or not explicitly disabled
-        if (options.applePay) {
-            this.initializeApplePay(options);
         }
         
     }
@@ -675,29 +684,25 @@ class StripeForm implements PaymentForm {
 
         this.applePayStatus = "checking"
         this.emitApplePayStatus("checking", isApplePayDeviceSupported())
-        this.stripeCanMakePayment = false
-
-        const bindWhenStripeReady = (stripeCanMakePayment: boolean) => {
-            if (!this.isActive) {
-                return
-            }
-
-            this.stripeCanMakePayment = stripeCanMakePayment
-            const resolved = resolveApplePayStatus(stripeCanMakePayment)
-            this.applePayStatus = resolved.status
-            this.emitApplePayStatus(resolved.status, resolved.deviceSupported)
-            this.bindApplePayButton(options ?? {}, resolved.status)
-        }
+        this.stripeCanMakePayment = null
+        this.bindApplePayButton(options ?? {})
 
         // Stripe rejects show() unless canMakePayment() has already run.
         // False means this page cannot open Apple Pay — emit unsupported so
         // Hide If Unavailable / Unavailable can show card checkout.
-        void this.paymentRequest!.canMakePayment()
+        this.canMakePaymentPromise = this.paymentRequest!.canMakePayment()
             .then((result) => {
-                bindWhenStripeReady(!!(result && result.applePay))
+                const canPay = !!(result && result.applePay)
+                if (this.isActive) {
+                    this.applyApplePayAvailability(canPay)
+                }
+                return canPay
             })
             .catch(() => {
-                bindWhenStripeReady(false)
+                if (this.isActive) {
+                    this.applyApplePayAvailability(false)
+                }
+                return false
             })
     }
 
