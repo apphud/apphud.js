@@ -294,10 +294,16 @@ export default class ApphudSDK implements Apphud {
     public async setEmail(email: string): Promise<void> {
         this.checkInitialization();
 
-        const user = await this.createUser({email: email}, true)
+        // stay not ready until the user is saved: calls made meanwhile (e.g. paymentForm)
+        // wait in the queue instead of racing this request; the queue runs on failure too
+        try {
+            const user = await this.createUser({email: email}, false)
 
-        if (user)
-            this.user = user
+            if (user)
+                this.user = user
+        } finally {
+            this.setReady()
+        }
     }
 
     /**
