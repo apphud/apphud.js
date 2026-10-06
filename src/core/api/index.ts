@@ -99,9 +99,10 @@ const reportError = async (errorMessage: string): Promise<void> => {
  * @param data - request body / params
  */
 const sendRequest = async (method: string, url: string, data?: ApphudHash | null): Promise<BackendResponse> => {
-    async function attempt(retryCount: number): Promise<BackendResponse> {
-        let delay = config.httpRetryDelay || 1000
+    // shared by all attempts, so the backoff below actually grows
+    let delay = config.httpRetryDelay || 1000
 
+    async function attempt(retryCount: number): Promise<BackendResponse> {
         const headers: HeadersInit = {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': `Bearer ${config.apiKey}`,
