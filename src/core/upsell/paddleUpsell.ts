@@ -96,7 +96,7 @@ class PaddleUpsellForm implements UpsellForm {
                 throw new Error("Missing Paddle provider token");
             }
             
-            const environment = config.debug || this.user.is_sandbox ? "sandbox" : "production";
+            const environment = config.debug || this.user.is_sandbox || this.provider.token.startsWith("test_") ? "sandbox" : "production";
             this.paddle = await initializePaddle({
                 environment,
                 token: this.provider.token,

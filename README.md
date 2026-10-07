@@ -23,7 +23,7 @@ The `ApphudSDK` provides a powerful and flexible way to manage in-app purchases,
 To start using the ApphudSDK, include the SDK JavaScript file in your project. You can download the SDK or include it via a `<script>` tag.
 
 ```html
-<script src="https://js.apphud.com/web/v1/apphud.js"></script>
+<script src="https://js.apphud.com/web/v2/apphud.js"></script>
 ```
 
 ---
@@ -130,16 +130,24 @@ productButtons.forEach(button => {
 
 ## Payment Form Integration
 
-The `paymentForm` method is used to display the payment form for the selected product.
+`paymentForm()` starts checkout for the selected product.
+
+Call `apphud.paymentForm()` only in response to a user action, such as submitting the payment form or clicking the purchase button. Do not call it during page initialization or paywall rendering.
+
+### Paddle
+
+`id` is required. Pass the DOM id of the payment form. The SDK sends this value to Paddle as `frameTarget`. If `id` is missing, the SDK logs `Paddle form id is required` and does not open checkout.
+
+`paymentForm()` creates the Apphud subscription/transaction first, then opens Paddle Checkout with the returned `transactionId`. Therefore, `POST /subscriptions` before the Paddle modal is expected after a purchase click, but must not happen on page load.
 
 ### Example:
 HTML
 ```html
 <form id="apphud-payment-form">
     <div id="payment-element">
-        <!-- here will be printed form from payment provider like stripe / paddle -->
+        <!-- Paddle checkout is opened after the user submits this form -->
     </div>
-    <button id="submit">Subscribe</button>
+    <button id="submit" type="submit">Subscribe</button>
     <div id="error-message">
         <!-- here will be printed form validation errors -->
     </div>
@@ -147,14 +155,25 @@ HTML
 ```
 JS
 ```javascript
-apphud.paymentForm({
-    paymentProvider: "stripe", // Optional: "stripe" or "paddle"
-    successUrl: "https://your-success-url.com", // Optional
+const form = document.getElementById("apphud-payment-form");
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  await apphud.paymentForm({
+    id: "apphud-payment-form",
+    paymentProvider: "paddle",
+  });
 });
 ```
 
-**Optional parameters:**
-- `paymentProvider`: Payment provider to use ('stripe' or 'paddle').
+### Stripe
+
+Use the same form markup (`apphud-payment-form`, `payment-element`, `submit`, `error-message`). `paymentForm()` mounts the Stripe Payment Element and attaches a submit handler. The SDK creates the subscription when the user clicks Subscribe. Call `paymentForm()` again after `selectPlacementProduct()` when the selected product changes, so the mounted form matches the new product.
+
+**Parameters:**
+- `id` *(string, required for Paddle)*: DOM id of the payment form. Passed to Paddle as `frameTarget`.
+- `paymentProvider`: Payment provider to use (`"stripe"` or `"paddle"`).
 - `successUrl`: Redirect URL after successful payment.
 - `failureUrl`: Redirect URL after payment failure.
 
