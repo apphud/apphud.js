@@ -96,7 +96,7 @@ class PaddleForm implements PaymentForm {
         const baseConfig = {
             settings: {
                 locale: this.user.locale || "en",
-                displayMode: (settings.displayMode || "overlay") as DisplayMode,
+                displayMode: (settings.displayMode || "inline") as DisplayMode,
                 theme: settings.theme || "light",
                 variant: settings.variant as Variant,
                 frameTarget: this.currentOptions?.id,
