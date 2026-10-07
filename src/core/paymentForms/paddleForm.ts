@@ -7,6 +7,9 @@ import api from "../api";
 import {setCookie} from "../../cookies";
 import {DeepLinkURL, SelectedProductDuration, PaymentProviderKey} from "../config/constants";
 
+const defaultInlineFrameStyle = "width: 100%; min-width: 312px; background-color: transparent; border: none;"
+const defaultInlineFrameHeight = 450
+
 class PaddleForm implements PaymentForm {
     private paddle: Paddle | null | undefined = null
     private currentOptions: PaymentProviderFormOptions | null = null
@@ -106,8 +109,12 @@ class PaddleForm implements PaymentForm {
                 theme: settings.theme || "light",
                 variant: settings.variant as Variant,
                 frameTarget,
-                frameInitialHeight: settings.frameInitialHeight,
-                frameStyle: settings.frameStyle,
+                frameInitialHeight: displayMode === "inline"
+                    ? (settings.frameInitialHeight ?? defaultInlineFrameHeight)
+                    : settings.frameInitialHeight,
+                frameStyle: displayMode === "inline"
+                    ? (settings.frameStyle || defaultInlineFrameStyle)
+                    : settings.frameStyle,
                 allowedPaymentMethods: settings.allowedPaymentMethods as AvailablePaymentMethod[]
             },
             customer: {
