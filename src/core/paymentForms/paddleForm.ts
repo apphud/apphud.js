@@ -87,19 +87,25 @@ class PaddleForm implements PaymentForm {
         }
 
         const settings = options?.paddleSettings || {}
+        const displayMode = (settings.displayMode || "inline") as DisplayMode
 
         if (!this.currentOptions?.id) {
             logError("Paddle form id is required", true)
             return
         }
 
+        const frameTarget = this.inlineFrameTarget(this.currentOptions.id, displayMode)
+        if (!frameTarget) {
+            return
+        }
+
         const baseConfig = {
             settings: {
                 locale: this.user.locale || "en",
-                displayMode: (settings.displayMode || "inline") as DisplayMode,
+                displayMode,
                 theme: settings.theme || "light",
                 variant: settings.variant as Variant,
-                frameTarget: this.currentOptions?.id,
+                frameTarget,
                 frameInitialHeight: settings.frameInitialHeight,
                 frameStyle: settings.frameStyle,
                 allowedPaymentMethods: settings.allowedPaymentMethods as AvailablePaymentMethod[]
@@ -144,6 +150,25 @@ class PaddleForm implements PaymentForm {
             paymentProvider: "paddle", 
             event: {} 
         })
+    }
+
+    /**
+     * Paddle mounts an inline checkout with getElementsByClassName(frameTarget).
+     * Callers pass a DOM id, so add that id as a class on the element before open.
+     */
+    private inlineFrameTarget(elementId: string, displayMode: DisplayMode): string | null {
+        if (displayMode !== "inline") {
+            return elementId
+        }
+
+        const frame = document.getElementById(elementId)
+        if (!frame) {
+            logError(`Paddle inline checkout element #${elementId} was not found`, true)
+            return null
+        }
+
+        frame.classList.add(elementId)
+        return elementId
     }
 
     /**
