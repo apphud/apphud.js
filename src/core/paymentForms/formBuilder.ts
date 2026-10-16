@@ -24,6 +24,11 @@ export interface FormBuilderHooks {
      * rejected a subscription. Returns undefined when there is nothing to switch to.
      */
     resolveFallbackProvider?: (failedProvider: PaymentProvider) => PaymentProvider | undefined
+    /**
+     * The user started a payment on a form of this builder.
+     * The SDK decides whether to track it.
+     */
+    onCheckoutInitiated?: (paywallId: string | undefined, placementId: string | undefined) => void
 }
 
 class FormBuilder implements PaymentFormBuilder {
@@ -165,6 +170,17 @@ class FormBuilder implements PaymentFormBuilder {
         if (this.events[eventName]) {
             this.events[eventName].forEach(callback => callback(event));
         }
+    }
+
+    /**
+     * Report that the user started a payment: pressed pay on the card form,
+     * tapped Apple Pay, or pressed pay in the Paddle checkout.
+     * Forms must call this only from a user action, never while rendering.
+     * @param paywallId - paywall the form was shown for
+     * @param placementId - placement the form was shown for
+     */
+    public checkoutInitiated(paywallId: string | undefined, placementId: string | undefined): void {
+        this.hooks.onCheckoutInitiated?.(paywallId, placementId);
     }
 
     /**

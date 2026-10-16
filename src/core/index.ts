@@ -70,6 +70,9 @@ export default class ApphudSDK implements Apphud {
     private isPaywallShown: boolean = false;
     private reportedPlacementErrors: Set<string> = new Set();
     private isUpsellPaywallShown: boolean = false;
+    // Paywalls that already tracked paywall_checkout_initiated on this page,
+    // keyed by placement and paywall. Retries do not track it again.
+    private checkoutInitiatedKeys: Set<string> = new Set();
     private formBuilders: Map<string, FormBuilder> = new Map();
     // Payment provider accounts that rejected a subscription in this session.
     // Kept on the SDK so that a new form or a plan change does not send the
@@ -426,6 +429,9 @@ export default class ApphudSDK implements Apphud {
 
                         return nextProvider;
                     },
+                    onCheckoutInitiated: (paywallId, placementId) => {
+                        this.trackCheckoutInitiated(paywallId, placementId);
+                    },
                 });
                 builder = createdBuilder;
                 this.formBuilders.set(targetProvider.id, builder);
@@ -465,6 +471,30 @@ export default class ApphudSDK implements Apphud {
             log("Show payment form for product:", productId);
             await builder.show(productId, this._currentPaywall!.id, this._currentPlacement!.id, formOptions, this._currentBundle);
         });
+    }
+
+    /**
+     * Track paywall_checkout_initiated when the user starts a payment.
+     * Tracked at most once per paywall and placement on this page, so retries
+     * and several payment buttons on one paywall do not inflate the count.
+     * @param paywallId - paywall the payment form was shown for
+     * @param placementId - placement the payment form was shown for
+     * @private
+     */
+    private trackCheckoutInitiated(paywallId: string | undefined, placementId: string | undefined): void {
+        if (!paywallId || !placementId) {
+            logError('Unable to track the "paywall_checkout_initiated" event: either paywall_id or placement_id is empty.', true);
+            return;
+        }
+
+        const key = `${placementId}:${paywallId}`;
+        if (this.checkoutInitiatedKeys.has(key)) {
+            log("paywall_checkout_initiated already tracked for", key);
+            return;
+        }
+
+        this.checkoutInitiatedKeys.add(key);
+        this.track("paywall_checkout_initiated", { paywall_id: paywallId, placement_id: placementId }, {});
     }
 
     /**
