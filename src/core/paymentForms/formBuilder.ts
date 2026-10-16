@@ -14,6 +14,18 @@ import StripeForm from "./stripeForm";
 import PaddleForm from "./paddleForm";
 import {log} from "../../utils";
 
+/**
+ * Callbacks the SDK passes to a FormBuilder when creating it.
+ * They are set once per builder, unlike `on()` listeners.
+ */
+export interface FormBuilderHooks {
+    /**
+     * Pick another account of the same provider kind after the current one
+     * rejected a subscription. Returns undefined when there is nothing to switch to.
+     */
+    resolveFallbackProvider?: (failedProvider: PaymentProvider) => PaymentProvider | undefined
+}
+
 class FormBuilder implements PaymentFormBuilder {
     private events: LifecycleEvents = {}
     private currentForms: Map<string, PaymentForm> = new Map();
@@ -23,7 +35,7 @@ class FormBuilder implements PaymentFormBuilder {
     constructor(
         private provider: PaymentProvider,
         private user: User,
-        private resolveFallbackProvider?: (failedProvider: PaymentProvider) => PaymentProvider | undefined
+        private hooks: FormBuilderHooks = {}
     ) {}
 
     /**
@@ -162,7 +174,7 @@ class FormBuilder implements PaymentFormBuilder {
      * already failed. Returns undefined when there is nothing to switch to.
      */
     public switchToFallbackProvider(): PaymentProvider | undefined {
-        const nextProvider = this.resolveFallbackProvider?.(this.provider);
+        const nextProvider = this.hooks.resolveFallbackProvider?.(this.provider);
 
         if (!nextProvider) {
             return undefined;

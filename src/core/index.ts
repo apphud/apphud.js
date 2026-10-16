@@ -409,21 +409,23 @@ export default class ApphudSDK implements Apphud {
             // Initialize FormBuilder if it doesn't exist or if provider has changed
             let builder = this.formBuilders.get(targetProvider.id);
             if (!builder) {
-                const createdBuilder = new FormBuilder(targetProvider, this.user, (failedProvider) => {
-                    const nextProvider = this.switchToFallbackProvider(failedProvider);
+                const createdBuilder = new FormBuilder(targetProvider, this.user, {
+                    resolveFallbackProvider: (failedProvider) => {
+                        const nextProvider = this.switchToFallbackProvider(failedProvider);
 
-                    if (!nextProvider) {
-                        return undefined;
-                    }
-
-                    for (const [key, value] of this.formBuilders.entries()) {
-                        if (value === createdBuilder) {
-                            this.formBuilders.delete(key);
+                        if (!nextProvider) {
+                            return undefined;
                         }
-                    }
-                    this.formBuilders.set(nextProvider.id, createdBuilder);
 
-                    return nextProvider;
+                        for (const [key, value] of this.formBuilders.entries()) {
+                            if (value === createdBuilder) {
+                                this.formBuilders.delete(key);
+                            }
+                        }
+                        this.formBuilders.set(nextProvider.id, createdBuilder);
+
+                        return nextProvider;
+                    },
                 });
                 builder = createdBuilder;
                 this.formBuilders.set(targetProvider.id, builder);
