@@ -458,14 +458,6 @@ export default class ApphudSDK implements Apphud {
                     }
                     this.emit(formEvent, e);
                 });
-
-                if (formEvent === "payment_form_ready") {
-                    if (this._currentPaywall !== undefined && this._currentPlacement !== undefined) {
-                        this.track("paywall_checkout_initiated", { paywall_id: this._currentPaywall.id, placement_id: this._currentPlacement.id }, {})
-                    } else {
-                        logError('Unable to track the "paywall_checkout_initiated" event: either paywall_id or placement_id is empty.', true)
-                    }
-                }
             });
 
             log("Show payment form for product:", productId);
