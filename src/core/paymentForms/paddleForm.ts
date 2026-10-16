@@ -14,6 +14,8 @@ class PaddleForm implements PaymentForm {
     private paddle: Paddle | null | undefined = null
     private currentOptions: PaymentProviderFormOptions | null = null
     private subscription: Subscription | null = null
+    private currentPaywallId: string | undefined
+    private currentPlacementId: string | undefined
 
     constructor(private user: User, private provider: PaymentProvider, private formBuilder: FormBuilder) {
         this.initializePaddleInstance()
@@ -61,6 +63,8 @@ class PaddleForm implements PaymentForm {
         subscriptionOptions?: PaddleSubscriptionOptions
     ): Promise<void> {
         this.currentOptions = options
+        this.currentPaywallId = paywallId
+        this.currentPlacementId = placementId
         
         // Create subscription first, before initializing the form
         await this.createSubscription(productId, paywallId, placementId, subscriptionOptions)
@@ -241,6 +245,11 @@ class PaddleForm implements PaymentForm {
                     paymentProvider: "paddle", 
                     event: {} 
                 })
+                break;
+
+            case "checkout.payment.initiated":
+                // The user pressed pay inside the Paddle checkout
+                this.formBuilder.checkoutInitiated(this.currentPaywallId, this.currentPlacementId)
                 break;
 
             case "checkout.payment.failed":
