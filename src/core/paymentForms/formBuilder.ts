@@ -14,6 +14,23 @@ import StripeForm from "./stripeForm";
 import PaddleForm from "./paddleForm";
 import {log} from "../../utils";
 
+/**
+ * Callbacks the SDK passes to a FormBuilder when creating it.
+ * They are set once per builder, unlike `on()` listeners.
+ */
+export interface FormBuilderHooks {
+    /**
+     * Pick another account of the same provider kind after the current one
+     * rejected a subscription. Returns undefined when there is nothing to switch to.
+     */
+    resolveFallbackProvider?: (failedProvider: PaymentProvider) => PaymentProvider | undefined
+    /**
+     * The user started a payment on a form of this builder.
+     * The SDK decides whether to track it.
+     */
+    onCheckoutInitiated?: (paywallId: string | undefined, placementId: string | undefined) => void
+}
+
 class FormBuilder implements PaymentFormBuilder {
     private events: LifecycleEvents = {}
     private currentForms: Map<string, PaymentForm> = new Map();
@@ -23,7 +40,7 @@ class FormBuilder implements PaymentFormBuilder {
     constructor(
         private provider: PaymentProvider,
         private user: User,
-        private resolveFallbackProvider?: (failedProvider: PaymentProvider) => PaymentProvider | undefined
+        private hooks: FormBuilderHooks = {}
     ) {}
 
     /**
@@ -156,13 +173,24 @@ class FormBuilder implements PaymentFormBuilder {
     }
 
     /**
+     * Report that the user started a payment: pressed pay on the card form,
+     * tapped Apple Pay, or pressed pay in the Paddle checkout.
+     * Forms must call this only from a user action, never while rendering.
+     * @param paywallId - paywall the form was shown for
+     * @param placementId - placement the form was shown for
+     */
+    public checkoutInitiated(paywallId: string | undefined, placementId: string | undefined): void {
+        this.hooks.onCheckoutInitiated?.(paywallId, placementId);
+    }
+
+    /**
      * Move to another account of the same provider kind after the current one
      * rejected a subscription, dropping the cached Stripe customer.
      * Which account to use is decided by the SDK, which remembers accounts that
      * already failed. Returns undefined when there is nothing to switch to.
      */
     public switchToFallbackProvider(): PaymentProvider | undefined {
-        const nextProvider = this.resolveFallbackProvider?.(this.provider);
+        const nextProvider = this.hooks.resolveFallbackProvider?.(this.provider);
 
         if (!nextProvider) {
             return undefined;

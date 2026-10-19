@@ -122,6 +122,20 @@ class StripeForm implements PaymentForm {
         this.isActive = false;
     }
 
+    /**
+     * Report that the user started a payment on this form.
+     * Call only from a user action: right before Stripe confirms the payment,
+     * or right after the Apple Pay sheet was shown.
+     * @private
+     */
+    private reportCheckoutInitiated(): void {
+        if (!this.isActive) {
+            return
+        }
+
+        this.formBuilder.checkoutInitiated(this.currentPaywallId, this.currentPlacementId)
+    }
+
     private injectStyles(): void {
         const styleId = 'apphud-stripe-styles';
         if (document.getElementById(styleId)) {
@@ -292,6 +306,12 @@ class StripeForm implements PaymentForm {
                 status: this.applePayStatus,
                 stripeCanMakePayment: true,
             })
+
+            // show() runs synchronously above. Count the tap only when the sheet
+            // opened, not when it threw or fell back to Wallet setup.
+            if (beginResult.shown) {
+                this.reportCheckoutInitiated()
+            }
 
             void completePresentApplePay(
                 beginResult,
@@ -1087,6 +1107,10 @@ class StripeForm implements PaymentForm {
             }
 
             
+
+            // Card and Payment Element wallets (Google Pay, Link, Apple Pay)
+            // all start the payment here.
+            this.reportCheckoutInitiated()
 
             // Step 1: Confirm SetupIntent
             const { error: setupError, setupIntent } = await this.stripe.confirmSetup({
