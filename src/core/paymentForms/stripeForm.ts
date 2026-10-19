@@ -124,9 +124,8 @@ class StripeForm implements PaymentForm {
 
     /**
      * Report that the user started a payment on this form.
-     * Call only from a user action, right before Stripe opens a payment sheet
-     * or confirms the payment. Must stay synchronous: the Apple Pay sheet
-     * needs the user gesture.
+     * Call only from a user action: right before Stripe confirms the payment,
+     * or right after the Apple Pay sheet was shown.
      * @private
      */
     private reportCheckoutInitiated(): void {
@@ -301,14 +300,18 @@ class StripeForm implements PaymentForm {
                 return
             }
 
-            this.reportCheckoutInitiated()
-
             const beginResult = beginPresentApplePay({
                 paymentRequest: this.paymentRequest,
                 merchantIdentifier: options.applePayConfig?.merchantIdentifier,
                 status: this.applePayStatus,
                 stripeCanMakePayment: true,
             })
+
+            // show() runs synchronously above. Count the tap only when the sheet
+            // opened, not when it threw or fell back to Wallet setup.
+            if (beginResult.shown) {
+                this.reportCheckoutInitiated()
+            }
 
             void completePresentApplePay(
                 beginResult,
