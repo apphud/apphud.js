@@ -14,8 +14,7 @@ const banner = `
 
 const minBanner = `window.ApphudSDKVersion = '${pkg.version}';`;
 
-const input = "src/index.ts";
-const outputName = "apphud";
+const outDir = "dist/v3";
 
 const plugins = [
   nodeResolve(),
@@ -24,19 +23,20 @@ const plugins = [
   terser(),
   typescript({
     compilerOptions: {
-      lib: ["es5", "es6", "dom"],
-      target: "es5",
+      lib: ["es2017", "dom"],
+      target: "es2017",
       declaration: false,
       declarationMap: false
     }
   }),
 ]
 export default [
+  // Funnel SDK: web/v3/apphud.js
   {
-    input: input,
+    input: "src/entries/funnel.ts",
     output: {
-      name: outputName,
-      file: `dist/${outputName}.js`,
+      name: "apphud",
+      file: `${outDir}/apphud.js`,
       format: "umd",
       exports: "default",
       banner: minBanner,
@@ -46,12 +46,33 @@ export default [
   },
 
   {
-    input: input,
+    input: "src/entries/funnel.ts",
     output: {
-      name: outputName,
-      file: pkg.module,
+      name: "apphud",
+      file: `${outDir}/apphud.esm.js`,
       format: "es",
       banner: banner
+    },
+    plugins: plugins
+  },
+
+  // Hosted web paywall page: web/v3/apphud-checkout.js
+  {
+    input: "src/entries/checkout.ts",
+    output: {
+      name: "ApphudCheckout",
+      file: `${outDir}/apphud-checkout.js`,
+      format: "umd"
+    },
+    plugins: plugins
+  },
+
+  // Renderer for the dashboard builder, no checkout code
+  {
+    input: "src/entries/renderer.ts",
+    output: {
+      file: `${outDir}/apphud-renderer.esm.js`,
+      format: "es"
     },
     plugins: plugins
   }

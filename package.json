@@ -1,13 +1,14 @@
 {
   "name": "apphud.js",
-  "version": "2.5.6",
+  "version": "3.0.0",
   "homepage": "https://apphud.com",
   "description": "Apphud Web-to-Web SDK",
   "type": "module",
-  "main": "./dist/apphud.js",
-  "module": "./dist/apphud.esm.js",
+  "main": "./dist/v3/apphud.js",
+  "module": "./dist/v3/apphud.esm.js",
   "scripts": {
-    "build": "rollup -c",
+    "build": "rollup -c && node scripts/check-bundles.mjs",
+    "test": "vitest run",
     "lint": "eslint src",
     "docs": "typedoc"
   },
@@ -25,8 +26,8 @@
     "url": "https://github.com/apphud/apphud.js"
   },
   "files": [
-    "dist/apphud.js",
-    "dist/apphud.esm.js"
+    "dist/v3/apphud.js",
+    "dist/v3/apphud.esm.js"
   ],
   "devDependencies": {
     "@eslint/js": "^9.8.0",
@@ -46,6 +47,7 @@
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
+    "jsdom": "^26.1.0",
     "prettier": "^3.3.3",
     "rollup": "^3.9.1",
     "tslib": "^2.6.3",
@@ -53,6 +55,7 @@
     "typedoc-plugin-markdown": "^4.2.7",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.0.1",
-    "ua-parser-js": "^1.0.38"
+    "ua-parser-js": "^1.0.38",
+    "vitest": "^3.2.7"
   }
 }

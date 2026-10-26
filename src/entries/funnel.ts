@@ -1,7 +1,7 @@
-export * from './types'
-export * from './core'
+export * from '../types'
+export * from '../core'
 
-import Apphud from "./core";
+import Apphud from "../core";
 
 const apphud = new Apphud();
 
