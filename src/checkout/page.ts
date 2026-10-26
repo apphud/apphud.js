@@ -1,23 +1,17 @@
 import { createWebPaywall } from "../renderer/create-web-paywall";
-import type { WebPaywall, WebPaywallCheckout } from "../renderer/types";
+import type { WebPaywall } from "../renderer/types";
 import { createApiClient } from "./api";
 import { showSandboxBanner } from "./banner";
+import { createInertCheckout, createPageCheckout } from "./checkout";
 import { createPageEvents } from "./events";
 import { parsePayload, type PagePayload } from "./payload";
+import { createPurchaseCompleter, returnUrlFor } from "./purchase";
 
 export interface MountedPage {
   readonly payload: PagePayload;
   readonly paywall: WebPaywall;
   destroy: () => void;
 }
-
-// Checkout is not wired yet (apphud-js-plan.md п. 7–11): the slot stays empty
-// and, with no submit, the template's pay button stays hidden.
-const createInertCheckout = (): WebPaywallCheckout => ({
-  mount() {},
-  setPlan() {},
-  unmount() {},
-});
 
 // Language of the template texts: data keys are `en`, `ru`, …
 const language = (locale: string | null | undefined) =>
@@ -49,6 +43,19 @@ export function mount(el: HTMLElement, raw: unknown): MountedPage {
     ? createApiClient({ apiHost: payload.apiHost, apiKey: payload.apiKey })
     : null;
   const events = createPageEvents(api, payload);
+  const returnUrl = returnUrlFor(payload, view?.navigator.userAgent ?? "");
+  const checkout = api
+    ? createPageCheckout({
+        payload,
+        api,
+        complete: createPurchaseCompleter({
+          api,
+          payload,
+          returnUrl,
+          redirect: (url) => view?.location.replace(url),
+        }),
+      })
+    : createInertCheckout();
 
   const style = pageStyle(doc);
   doc.querySelector("[data-apphud-sandbox]")?.remove();
@@ -71,8 +78,8 @@ export function mount(el: HTMLElement, raw: unknown): MountedPage {
     locale: language(payload.customer?.locale ?? view?.navigator.language),
     defaultLocale: "en",
     hosted: true,
-    checkout: createInertCheckout(),
-    returnUrl: null,
+    checkout,
+    returnUrl,
     onEvent: (event, properties) => {
       if (event === "shown") events.track("paywall_shown");
       if (event === "checkout_initiated") {

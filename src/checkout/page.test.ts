@@ -129,6 +129,45 @@ describe("hosted page", () => {
     });
   });
 
+  it("points the success page at the return URL of the platform", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/126.0 Mobile",
+    );
+    const el = host();
+    page = mount(
+      el,
+      payload({
+        return_urls: {
+          ios: "https://ddd.aphd.cc/_apphud/return",
+          android: "apphudtestapp://ddd.aphd.cc/_apphud/return",
+        },
+      }),
+    );
+    await page.paywall.ready;
+    page.paywall.preview("success");
+    const button = el.shadowRoot?.querySelector<HTMLAnchorElement>(
+      ".aph-success__button",
+    );
+    expect(button?.hidden).toBe(false);
+    expect(button?.getAttribute("href")).toBe(
+      "apphudtestapp://ddd.aphd.cc/_apphud/return?status=success",
+    );
+  });
+
+  it("asks to go back to the app without return URLs", async () => {
+    const el = host();
+    page = mount(el, payload());
+    await page.paywall.ready;
+    page.paywall.preview("success");
+    const root = el.shadowRoot;
+    expect(
+      root?.querySelector<HTMLElement>(".aph-success__button")?.hidden,
+    ).toBe(true);
+    expect(root?.querySelector<HTMLElement>(".aph-success__hint")?.hidden).toBe(
+      false,
+    );
+  });
+
   it("shows the sandbox banner outside the paywall", async () => {
     const el = host();
     page = mount(
