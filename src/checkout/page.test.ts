@@ -92,8 +92,13 @@ describe("hosted page", () => {
     expect(document.documentElement.style.background).toMatch(
       /#05080f|rgb\(5, 8, 15\)/i,
     );
-    // no checkout yet: nothing in the slot, no pay button
-    expect(root?.querySelector("[data-checkout]")?.childNodes).toHaveLength(0);
+    // the only plan sells through Stripe, which waits for Checkout Sessions:
+    // the slot shows an empty light-DOM frame and the pay button is hidden
+    const projection = root?.querySelector("[data-checkout] > slot");
+    expect(projection?.getAttribute("name")).toBe("apphud-checkout");
+    expect(
+      el.querySelector('[slot="apphud-checkout"]')?.childNodes,
+    ).toHaveLength(0);
     expect(root?.querySelector<HTMLElement>("#wp-cta")?.style.display).toBe(
       "none",
     );

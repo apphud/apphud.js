@@ -111,7 +111,6 @@ describe("purchase completer", () => {
   });
 
   it("turns a rejected sync into a payment error with the template's text", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
     const { api: client } = api({
       status: 422,
       body: { errors: [{ title: "Not paid" }] },
@@ -127,6 +126,7 @@ describe("purchase completer", () => {
       error: "generic",
       provider: "paddle",
       code: "sync_422",
+      detail: "Not paid",
     });
   });
 });

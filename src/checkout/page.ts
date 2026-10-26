@@ -48,6 +48,7 @@ export function mount(el: HTMLElement, raw: unknown): MountedPage {
     ? createPageCheckout({
         payload,
         api,
+        host: el,
         complete: createPurchaseCompleter({
           api,
           payload,

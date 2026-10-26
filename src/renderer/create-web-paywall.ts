@@ -371,6 +371,14 @@ export function createWebPaywall(
       if (!destroyed) showError(result.error || "generic", result.message);
     },
     clearError,
+    wait: async (task) => {
+      setStatus("processing");
+      try {
+        return await task();
+      } finally {
+        if (!destroyed && state.status === "processing") setStatus("idle");
+      }
+    },
     setSubmit: (visible) => {
       submitVisible = visible;
       renderSubmit();
@@ -426,7 +434,7 @@ export function createWebPaywall(
     emit("payment_error", {
       provider: result.provider,
       code: result.code ?? result.error,
-      message: result.message,
+      message: result.message ?? result.detail,
       ...productRef(),
     });
   }

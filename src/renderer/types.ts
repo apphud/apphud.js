@@ -125,6 +125,8 @@ export interface PayResult {
   error?: string;
   // Shown instead of the `errors` text, e.g. the provider's own message.
   message?: string;
+  // Only for the `payment_error` event: the provider's text the buyer does not see.
+  detail?: string;
   // For the `payment_error` event.
   provider?: string;
   code?: string;
@@ -141,6 +143,9 @@ export interface CheckoutContext {
   pay: (method: string, run: () => Promise<PayResult>) => Promise<void>;
   // Shows an error that is not a payment attempt, e.g. incomplete fields.
   fail: (result: PayResult) => void;
+  // Processing while `task` runs, with no events: the checkout prepares itself
+  // (e.g. creates the provider's transaction) before the user can pay.
+  wait: <T>(task: () => Promise<T>) => Promise<T>;
   clearError: () => void;
   // Shows or hides the template's pay button (#wp-cta): Paddle has its own.
   setSubmit: (visible: boolean) => void;

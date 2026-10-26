@@ -80,12 +80,12 @@ export function createPurchaseCompleter(options: PurchaseOptions) {
       options.sync,
     );
     if (result.status === "failed") {
-      // the backend's text is for us; the buyer sees the template's errors.generic
-      console.error("Apphud: purchase sync failed", result.message);
+      // the backend's text goes to the event; the buyer sees errors.generic
       return {
         error: "generic",
         provider: payment.kind,
         code: `sync_${result.httpStatus}`,
+        detail: result.message ?? undefined,
       };
     }
 
