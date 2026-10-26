@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WEB_PAYWALL_TEMPLATES } from "./__fixtures__/templates";
 import { createWebPaywall } from "./create-web-paywall";
-import type { CreateWebPaywallOptions, JsonObject } from "./types";
+import type {
+  CheckoutContext,
+  CreateWebPaywallOptions,
+  JsonObject,
+  PayResult,
+  PlanProduct,
+} from "./types";
 
 // Microtasks stay real (vitest does not fake queueMicrotask by default): onChange
 // is batched through it, and a faked queue would count as a pending "timer".
@@ -33,10 +39,8 @@ const planNodes = (root: HTMLElement) =>
     root.querySelectorAll<HTMLElement>('[data-list="plans"] > [data-index]'),
   );
 
-const submitCard = (root: HTMLElement) =>
-  root
-    .querySelector("#wp-card")
-    ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+const submit = (root: HTMLElement) =>
+  root.querySelector<HTMLButtonElement>("#wp-cta")?.click();
 
 const typeInto = (input: HTMLInputElement, value: string) => {
   input.value = value;
@@ -122,8 +126,10 @@ describe("createWebPaywall states", () => {
 
     expect(planNodes(root)).toHaveLength(2);
     expect(planNodes(root)[0].classList.contains("is-selected")).toBe(true);
-    expect(root.classList.contains("has-wallet")).toBe(true);
-    expect(root.classList.contains("is-card-open")).toBe(false);
+    expect(paywall.state.walletAvailable).toBe(true);
+    expect(
+      root.querySelector("[data-checkout] .aph-mock")?.classList,
+    ).toContain("has-wallet");
     expect(events).toEqual(["wallet", "template", "shown"]);
 
     planNodes(root)[1].click();
@@ -137,12 +143,9 @@ describe("createWebPaywall states", () => {
       index: 1,
       bundle_id: "",
     });
-    // flat slugs: card brands are their own collection
-    expect(root.querySelectorAll("#wp-brands img")).toHaveLength(3);
 
     paywall.preview("error");
     expect(root.classList.contains("has-error")).toBe(true);
-    expect(root.classList.contains("is-card-open")).toBe(true);
     expect(root.querySelector("#wp-error-text")?.textContent).toBe(
       "Your card was declined. Try another card.",
     );
@@ -150,6 +153,9 @@ describe("createWebPaywall states", () => {
     paywall.preview("success");
     expect(root.classList.contains("is-success")).toBe(true);
     expect(root.classList.contains("has-error")).toBe(false);
+    expect(root.querySelector(".aph-success__title")?.textContent).toBe(
+      "Welcome to Premium!",
+    );
 
     expect(root.dataset.theme).toBe("dark");
     paywall.setTheme("light");
@@ -162,22 +168,32 @@ describe("createWebPaywall states", () => {
   it("runs the mock card checkout: incomplete, processing, declined", async () => {
     useFakeTimers();
     const events: string[] = [];
+    const payloads: Record<string, unknown>[] = [];
     const { shadow } = createHost();
     const paywall = create(shadow, {
       template: "apphud_branded",
       wallet: "none",
-      onEvent: (event) => events.push(event),
+      onEvent: (event, payload) => {
+        events.push(event);
+        payloads.push(payload);
+      },
     });
     await paywall.ready;
     const root = rootOf(shadow);
-    expect(root.classList.contains("is-card-open")).toBe(true);
+    expect(root.querySelector(".aph-mock")?.classList).not.toContain(
+      "has-wallet",
+    );
 
-    submitCard(root);
+    submit(root);
     expect(paywall.state.error).toBe("incomplete");
-    expect(root.querySelector("#wp-fields")?.classList).toContain("is-invalid");
+    expect(root.querySelector(".aph-mock__fields")?.classList).toContain(
+      "is-invalid",
+    );
+    expect(events).not.toContain("checkout_initiated");
+    expect(events).not.toContain("payment_error");
 
     const [number, expiry, cvc] = Array.from(
-      root.querySelectorAll<HTMLInputElement>(".wp__control input"),
+      root.querySelectorAll<HTMLInputElement>(".aph-mock input"),
     );
     typeInto(number, "4000000000000002");
     typeInto(expiry, "1230");
@@ -186,7 +202,7 @@ describe("createWebPaywall states", () => {
     expect(expiry.value).toBe("12 / 30");
     expect(paywall.state.error).toBeNull();
 
-    submitCard(root);
+    submit(root);
     expect(paywall.state.status).toBe("processing");
     expect(root.classList.contains("is-processing")).toBe(true);
     expect(root.querySelector("#wp-cta-label")?.textContent).toBe(
@@ -198,6 +214,17 @@ describe("createWebPaywall states", () => {
     expect(paywall.state.status).toBe("idle");
     expect(paywall.state.error).toBe("declined");
     expect(root.classList.contains("has-error")).toBe(true);
+    expect(payloads[events.indexOf("payment_error")]).toEqual({
+      provider: "mock",
+      code: "card_declined",
+      message: undefined,
+      bundle_id: "",
+    });
+
+    typeInto(number, "4242424242424242");
+    submit(root);
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(paywall.state.status).toBe("success");
     expect(events).not.toContain("purchased");
 
     paywall.destroy();
@@ -232,7 +259,7 @@ describe("createWebPaywall states", () => {
     const payloads: Record<string, unknown>[] = [];
     const { shadow } = createHost();
     const paywall = create(shadow, {
-      template: "baby_cry",
+      template: "apphud_branded",
       wallet: "apple_pay",
       onEvent: (event, payload) => {
         if (event === "checkout_initiated") payloads.push(payload);
@@ -242,7 +269,9 @@ describe("createWebPaywall states", () => {
     paywall.updateData((draft) => {
       (draft.plans as JsonObject[])[0].product = { bundle_id: " bundle-1 " };
     });
-    rootOf(shadow).querySelector<HTMLButtonElement>("#wp-applepay")?.click();
+    rootOf(shadow)
+      .querySelector<HTMLButtonElement>(".aph-mock__wallet")
+      ?.click();
     expect(payloads).toEqual([{ method: "apple_pay", bundle_id: "bundle-1" }]);
     paywall.destroy();
   });
@@ -335,6 +364,181 @@ describe("createWebPaywall states", () => {
     paywall.resetData();
     expect(rootOf(shadow).querySelector(".wp__title")?.textContent).toBe(
       "Select your payment method",
+    );
+    paywall.destroy();
+  });
+});
+
+describe("createWebPaywall checkout", () => {
+  const fakeCheckout = () => {
+    let ctx: CheckoutContext | null = null;
+    let resolvePay: (result: PayResult) => void = () => {};
+    const checkout = {
+      slot: null as HTMLElement | null,
+      plans: [] as (PlanProduct | null)[],
+      mount: vi.fn((slot: HTMLElement, context: CheckoutContext) => {
+        checkout.slot = slot;
+        ctx = context;
+        slot.append(document.createElement("iframe"));
+      }),
+      setPlan: vi.fn((product: PlanProduct | null) => {
+        checkout.plans.push(product);
+      }),
+      submit: vi.fn(() => {
+        void ctx?.pay(
+          "stripe",
+          () => new Promise<PayResult>((resolve) => (resolvePay = resolve)),
+        );
+      }),
+      unmount: vi.fn(),
+      ctx: () => ctx as CheckoutContext,
+      settle: (result: PayResult) => resolvePay(result),
+    };
+    return checkout;
+  };
+
+  it("mounts into [data-checkout], follows the plan and runs its payment", async () => {
+    const checkout = fakeCheckout();
+    const events: [string, Record<string, unknown>][] = [];
+    const { shadow } = createHost();
+    const paywall = create(shadow, {
+      template: "apphud_branded",
+      checkout,
+      returnUrl: "apphudtestapp://ddd.aphd.cc/_apphud/return?status=success",
+      onEvent: (event, payload) => events.push([event, payload]),
+    });
+    await paywall.ready;
+    const root = rootOf(shadow);
+
+    expect(checkout.slot).toBe(root.querySelector("[data-checkout]"));
+    expect(root.querySelector(".aph-mock")).toBeNull();
+    expect(checkout.plans).toEqual([{ bundle_id: "" }]);
+
+    paywall.updateData((draft) => {
+      (draft.plans as JsonObject[])[1].product = { bundle_id: "b-2" };
+    });
+    planNodes(root)[1].click();
+    expect(checkout.plans.at(-1)).toEqual({ bundle_id: "b-2" });
+
+    submit(root);
+    expect(checkout.submit).toHaveBeenCalledTimes(1);
+    expect(paywall.state.status).toBe("processing");
+    submit(root);
+    expect(checkout.submit).toHaveBeenCalledTimes(1);
+
+    checkout.settle({
+      error: "declined",
+      provider: "stripe",
+      code: "card_declined",
+      message: "Declined by bank",
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(paywall.state.status).toBe("idle");
+    expect(root.querySelector("#wp-error-text")?.textContent).toBe(
+      "Declined by bank",
+    );
+    expect(events.find(([name]) => name === "payment_error")?.[1]).toEqual({
+      provider: "stripe",
+      code: "card_declined",
+      message: "Declined by bank",
+      bundle_id: "b-2",
+    });
+
+    submit(root);
+    checkout.settle({ ok: true });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(paywall.state.status).toBe("success");
+    expect(root.classList.contains("has-error")).toBe(false);
+    const button = root.querySelector<HTMLAnchorElement>(
+      ".aph-success__button",
+    );
+    expect(button?.hidden).toBe(false);
+    expect(button?.getAttribute("href")).toBe(
+      "apphudtestapp://ddd.aphd.cc/_apphud/return?status=success",
+    );
+    expect(root.querySelector<HTMLElement>(".aph-success__hint")?.hidden).toBe(
+      true,
+    );
+
+    paywall.destroy();
+    expect(checkout.unmount).toHaveBeenCalled();
+  });
+
+  it("hides the template's pay button when the checkout asks", async () => {
+    const checkout = fakeCheckout();
+    const { shadow } = createHost();
+    const paywall = create(shadow, { template: "apphud_branded", checkout });
+    await paywall.ready;
+    const cta = rootOf(shadow).querySelector<HTMLElement>("#wp-cta");
+
+    expect(cta?.style.display).toBe("");
+    checkout.ctx().setSubmit(false);
+    expect(cta?.style.display).toBe("none");
+    paywall.setLocale("ru");
+    expect(cta?.style.display).toBe("none");
+
+    checkout.ctx().fail({ error: "incomplete" });
+    expect(paywall.state.error).toBe("incomplete");
+    expect(rootOf(shadow).querySelector("#wp-error-text")?.textContent).toBe(
+      "Заполните данные карты полностью.",
+    );
+    paywall.destroy();
+  });
+
+  it("shows the success page without a return link and with default texts", async () => {
+    const { shadow } = createHost();
+    const paywall = create(shadow, {
+      template: "baby_cry",
+      locale: "ru",
+      returnUrl: null,
+    });
+    await paywall.ready;
+    paywall.preview("success");
+    const root = rootOf(shadow);
+
+    expect(root.querySelector(".aph-success__title")?.textContent).toBe(
+      "Оплата прошла",
+    );
+    expect(
+      root.querySelector<HTMLElement>(".aph-success__button")?.hidden,
+    ).toBe(true);
+    const hint = root.querySelector<HTMLElement>(".aph-success__hint");
+    expect(hint?.hidden).toBe(false);
+    expect(hint?.textContent).toMatch(/^Вернитесь в приложение/);
+
+    paywall.updateData((draft) => {
+      draft.success_page = {
+        title: { en: "Done", ru: "Готово" },
+        css: ".aph-success { background: red; }",
+      };
+    });
+    expect(root.querySelector(".aph-success__title")?.textContent).toBe(
+      "Готово",
+    );
+    expect(shadow.querySelector("style[data-wp-success]")?.textContent).toBe(
+      ".aph-success { background: red; }",
+    );
+    paywall.destroy();
+  });
+
+  it("drops a return URL with a script scheme", async () => {
+    const { shadow } = createHost();
+    const paywall = create(shadow, {
+      template: "apphud_branded",
+      returnUrl: "javascript://%0Aalert(1)",
+    });
+    await paywall.ready;
+    const root = rootOf(shadow);
+    expect(
+      root.querySelector(".aph-success__button")?.hasAttribute("href"),
+    ).toBe(false);
+    expect(
+      root.querySelector<HTMLElement>(".aph-success__button")?.hidden,
+    ).toBe(true);
+    expect(root.querySelector<HTMLElement>(".aph-success__hint")?.hidden).toBe(
+      false,
     );
     paywall.destroy();
   });

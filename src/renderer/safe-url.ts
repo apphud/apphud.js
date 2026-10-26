@@ -9,6 +9,24 @@ export const safeHref = (value: unknown): string => {
   return url.startsWith("#") || HTTP_URL.test(url) ? url : "#";
 };
 
+// The success page's return button: a universal link or the app's own URI
+// scheme from the deeplink config (`apphudtestapp://…`). Never for data links.
+const SCHEME_URL = /^([a-z][a-z0-9+.-]*):\/\//i;
+const BLOCKED_SCHEMES = new Set([
+  "javascript",
+  "data",
+  "vbscript",
+  "file",
+  "blob",
+]);
+
+export const safeReturnUrl = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const url = value.trim();
+  const scheme = SCHEME_URL.exec(url)?.[1].toLowerCase();
+  return scheme && !BLOCKED_SCHEMES.has(scheme) ? url : null;
+};
+
 export const safeImageSrc = (value: unknown): string => {
   if (typeof value !== "string") return "";
   const url = value.trim();

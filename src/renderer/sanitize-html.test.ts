@@ -114,9 +114,9 @@ describe("neutralizeWebPaywallHtml", () => {
   it("keeps a bundled template mountable", () => {
     const host = mount(brandedHtml);
 
-    expect(host.querySelector("#wp-card")).not.toBeNull();
+    expect(host.querySelector("[data-checkout]")).not.toBeNull();
+    expect(host.querySelector("#wp-cta")).not.toBeNull();
     expect(host.querySelector("[data-bind-href]")).not.toBeNull();
-    expect(host.querySelector("svg path")).not.toBeNull();
     expect(host.querySelector("template")).not.toBeNull();
     expect(host.querySelector("script, iframe, object, embed")).toBeNull();
   });

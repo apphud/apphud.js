@@ -1,12 +1,6 @@
 export const html = `
   <div class="wp__glow" aria-hidden="true"></div>
 
-  <header class="wp__top">
-    <a class="wp__close" data-bind-href="dismiss_button.url" aria-label="Close" data-press>
-      <i class="wp__glyph" data-bind-icon="dismiss_button.icon"></i>
-    </a>
-  </header>
-
   <main class="wp__body">
     <section class="wp__hero">
       <div class="wp__app"><img data-bind-src="header.app_icon" alt=""></div>
@@ -55,44 +49,15 @@ export const html = `
     <p class="wp__summary" data-plan-bind="summary"></p>
 
     <div class="wp__pay">
-      <div class="wp__wallet">
-        <button type="button" class="wp__applepay" id="wp-applepay" data-press>
-          <span class="wp__applepay-label" id="wp-applepay-label"></span>
-          <svg class="wp__applepay-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
-          <span class="wp__applepay-pay">Pay</span>
-          <span class="wp__spinner"></span>
-        </button>
-        <div class="wp__or"><span data-bind="payment.divider"></span></div>
-        <button type="button" class="wp__card-toggle" data-action="open-card" data-press>
-          <i class="wp__glyph" data-bind-icon="payment.card_icon"></i>
-          <span data-bind="payment.other_methods"></span>
-        </button>
+      <div class="wp__checkout" data-checkout></div>
+      <div class="wp__error" id="wp-error" role="alert">
+        <i class="wp__glyph" data-bind-icon="errors.icon"></i>
+        <span id="wp-error-text"></span>
       </div>
-
-      <form class="wp__card" id="wp-card" novalidate>
-        <div class="wp__card-head">
-          <span data-bind="payment.card_title"></span>
-          <span class="wp__brands" id="wp-brands"></span>
-        </div>
-        <div class="wp__fields" id="wp-fields">
-          <div class="wp__field">
-            <div class="wp__control" id="wp-card-number"></div>
-            <img class="wp__field-brand" id="wp-card-brand" alt="">
-          </div>
-          <div class="wp__row">
-            <div class="wp__field"><div class="wp__control" id="wp-card-expiry"></div></div>
-            <div class="wp__field"><div class="wp__control" id="wp-card-cvc"></div></div>
-          </div>
-        </div>
-        <div class="wp__error" id="wp-error" role="alert">
-          <i class="wp__glyph" data-bind-icon="errors.icon"></i>
-          <span id="wp-error-text"></span>
-        </div>
-        <button type="submit" class="wp__cta" id="wp-cta" data-press>
-          <span id="wp-cta-label" data-plan-bind="cta"></span>
-          <span class="wp__spinner"></span>
-        </button>
-      </form>
+      <button type="button" class="wp__cta" id="wp-cta" data-press>
+        <span id="wp-cta-label" data-plan-bind="cta"></span>
+        <span class="wp__spinner"></span>
+      </button>
 
       <div class="wp__trust">
         <i class="wp__glyph" data-bind-icon="trust.icon"></i>
@@ -108,13 +73,4 @@ export const html = `
       </nav>
     </div>
   </footer>
-
-  <section class="wp__success" aria-live="polite">
-    <div class="wp__success-body">
-      <div class="wp__success-icon"><i class="wp__glyph" data-bind-icon="success.icon"></i></div>
-      <h2 class="wp__success-title" data-bind="success.title"></h2>
-      <p class="wp__success-text" data-bind="success.text"></p>
-    </div>
-    <a class="wp__cta" data-bind-href="success.button_url" data-press><span data-bind="success.button"></span></a>
-  </section>
 `;

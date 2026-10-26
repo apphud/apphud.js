@@ -1,17 +1,17 @@
-import { createMockAdapter, type AdapterContext } from "./card-adapters";
 import { resolveIcon } from "./icons";
-import {
-  APPLE_PAY_LABELS,
-  formatText,
-  getPath,
-  lang,
-  type MacroContext,
-} from "./macros";
+import { formatText, getPath, type MacroContext } from "./macros";
+import { createMockCheckout } from "./mock-checkout";
 import { cssUrl, safeHref } from "./safe-url";
 import { neutralizeWebPaywallHtml } from "./sanitize-html";
 import { STAGE_CSS } from "./stage-css";
+import {
+  createSuccessPage,
+  defaultSuccessText,
+  SUCCESS_CSS,
+  type SuccessField,
+} from "./success-page";
 import type {
-  CardAdapter,
+  CheckoutContext,
   CreateWebPaywallOptions,
   JsonObject,
   PayResult,
@@ -24,6 +24,7 @@ import type {
   WebPaywallData,
   WebPaywallDraft,
   WebPaywallEventName,
+  WebPaywallCheckout,
   WebPaywallEventPayload,
   WebPaywallState,
 } from "./types";
@@ -38,6 +39,8 @@ const errorMessage = (e: unknown) =>
 
 // Plan cards: the template's `plans` collection, one node per item.
 const PLAN_NODES = '[data-list="plans"] > [data-index]';
+// Where the checkout mounts its payment form; the renderer draws nothing inside.
+const CHECKOUT_SLOT = "[data-checkout]";
 
 /**
  * Port of the prototype's `wp-js` runtime without global side effects: it
@@ -52,21 +55,20 @@ export function createWebPaywall(
   const saved: Record<string, WebPaywallDraft> = options.saved ?? {};
   const userId = options.userId ?? null;
   const doc = container.ownerDocument ?? document;
-  const view = doc.defaultView;
-  const nativeApplePay =
-    typeof CSS !== "undefined" &&
-    typeof CSS.supports === "function" &&
-    CSS.supports("-webkit-appearance", "-apple-pay-button");
 
   container.textContent = "";
   const stageStyle = doc.createElement("style");
-  stageStyle.textContent = STAGE_CSS;
+  stageStyle.textContent = STAGE_CSS + SUCCESS_CSS;
   const templateStyle = doc.createElement("style");
   templateStyle.setAttribute("data-wp-template", "");
+  // `success_page.css` from the screen data, over the base success page CSS.
+  const successStyle = doc.createElement("style");
+  successStyle.setAttribute("data-wp-success", "");
   const root = doc.createElement("div");
   root.className = "wp";
   root.id = "wp-root";
-  container.append(stageStyle, templateStyle, root);
+  container.append(stageStyle, templateStyle, successStyle, root);
+  const successPage = createSuccessPage(doc, options.returnUrl);
 
   const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
     root.querySelector<T>(`#${id}`);
@@ -78,7 +80,6 @@ export function createWebPaywall(
     wallet: options.wallet ?? "auto",
     plan: null,
     walletAvailable: false,
-    cardOpen: false,
     status: "idle",
     error: null,
   };
@@ -99,7 +100,6 @@ export function createWebPaywall(
   // Cleared on destroy: an in-flight mock payment then simply never resolves.
   const sleep = (ms: number) =>
     new Promise<void>((resolve) => later(resolve, ms));
-  let frame = 0;
 
   let changeQueued = false;
   const scheduleChange = () => {
@@ -252,6 +252,7 @@ export function createWebPaywall(
       node.classList.toggle("is-empty", !value);
     });
     renderCtaLabel();
+    if (checkoutMounted) checkout.setPlan(currentProduct());
     if (!silent) {
       clearError();
       emit("plan_selected", { index, ...productRef() });
@@ -271,48 +272,13 @@ export function createWebPaywall(
     }
   }
 
-  function renderPayment() {
-    const pay = isObject(data.payment) ? data.payment : {};
-    const type =
-      typeof pay.apple_pay_type === "string" &&
-      APPLE_PAY_LABELS[pay.apple_pay_type]
-        ? pay.apple_pay_type
-        : "subscribe";
-    const auto = root.dataset.theme === "dark" ? "white" : "black";
-    const style =
-      typeof pay.apple_pay_style === "string" && pay.apple_pay_style !== "auto"
-        ? pay.apple_pay_style
-        : auto;
-    const button = $<HTMLButtonElement>("wp-applepay");
-    const label =
-      APPLE_PAY_LABELS[type][lang(state.locale)] ?? APPLE_PAY_LABELS[type].en;
-    if (button) {
-      button.className = `wp__applepay is-type-${type} is-style-${style}${nativeApplePay ? " is-native" : ""}`;
-      button.setAttribute("aria-label", `${label} Apple Pay`.trim());
-    }
-    const buttonLabel = $("wp-applepay-label");
-    if (buttonLabel) buttonLabel.textContent = label;
-
-    const brands = $("wp-brands");
-    if (brands) {
-      brands.textContent = "";
-      (Array.isArray(data.card_brands) ? data.card_brands : [])
-        .filter(isObject)
-        .forEach(({ brand }) => {
-          const img = doc.createElement("img");
-          img.src = resolveIcon(brand);
-          img.alt = "";
-          brands.append(img);
-        });
-    }
-
-    root.classList.toggle("has-wallet", state.walletAvailable);
-    root.classList.toggle(
-      "is-card-open",
-      !state.walletAvailable || state.cardOpen,
+  function renderSuccessPage() {
+    const page = isObject(data.success_page) ? data.success_page : {};
+    successStyle.textContent = typeof page.css === "string" ? page.css : "";
+    successPage.render(
+      (field: SuccessField) =>
+        txt(page[field]) || defaultSuccessText(field, state.locale),
     );
-    adapter.refresh();
-    scheduleChange();
   }
 
   function setStatus(status: PaywallStatus) {
@@ -321,8 +287,6 @@ export function createWebPaywall(
     root.classList.toggle("is-success", status === "success");
     const cta = $<HTMLButtonElement>("wp-cta");
     if (cta) cta.disabled = status === "processing";
-    const applePay = $<HTMLButtonElement>("wp-applepay");
-    if (applePay) applePay.disabled = status === "processing";
     renderCtaLabel();
     scheduleChange();
   }
@@ -335,29 +299,21 @@ export function createWebPaywall(
         message || text("errors." + key) || text("errors.generic");
     }
     root.classList.add("has-error");
-    $("wp-fields")?.classList.toggle(
-      "is-invalid",
-      key === "incomplete" || key === "declined",
-    );
     scheduleChange();
   }
 
   function clearError() {
     state.error = null;
     root.classList.remove("has-error");
-    $("wp-fields")?.classList.remove("is-invalid");
     scheduleChange();
   }
 
-  const fieldsFocus = (on: boolean) =>
-    $("wp-fields")?.classList.toggle("is-focus", on);
-
-  const setBrand = (brand: string) => {
-    $("wp-card-brand")?.setAttribute(
-      "src",
-      resolveIcon(brand ? "@" + brand : "@card_generic"),
-    );
-  };
+  let submitVisible = true;
+  function renderSubmit() {
+    // Inline style: template CSS sets `display` on .wp__cta and beats [hidden].
+    const cta = $("wp-cta");
+    if (cta) cta.style.display = submitVisible ? "" : "none";
+  }
 
   // countdown for any [data-countdown] node: minutes from data path, restarts on mount
   let countdownTimer: ReturnType<typeof setInterval> | undefined;
@@ -384,82 +340,78 @@ export function createWebPaywall(
     renderLists();
     bind(root, data);
     renderPlans();
-    renderPayment();
+    renderSubmit();
+    renderSuccessPage();
     setStatus(state.status);
     renderExtras();
+    if (checkoutMounted) void checkout.refresh?.();
   }
 
-  // --------------------------------------------------------------- adapters
-  const adapterContext: AdapterContext = {
+  // --------------------------------------------------------------- checkout
+  const checkout: WebPaywallCheckout =
+    options.checkout ??
+    createMockCheckout({
+      wallet: () => state.wallet,
+      onWallet: (available) => {
+        if (destroyed) return;
+        state.walletAvailable = available;
+        scheduleChange();
+        emit("wallet", { available, source: state.wallet });
+      },
+      sleep,
+    });
+
+  const checkoutContext: CheckoutContext = {
     doc,
-    $,
+    locale: () => state.locale,
     text,
-    fieldsFocus,
-    setBrand,
+    pay,
+    fail: (result) => {
+      if (!destroyed) showError(result.error || "generic", result.message);
+    },
     clearError,
-    sleep,
+    setSubmit: (visible) => {
+      submitVisible = visible;
+      renderSubmit();
+    },
+    busy: () => state.status !== "idle",
   };
 
-  let adapter: CardAdapter = createMockAdapter(adapterContext);
-  let adapterSeq = 0;
-
-  const unmountAdapter = () => {
+  // setPlan and refresh reach the checkout only between mount and unmount.
+  let checkoutMounted = false;
+  const unmountCheckout = () => {
+    checkoutMounted = false;
     try {
-      adapter.unmount();
+      checkout.unmount();
     } catch {
       /* already gone */
     }
   };
 
-  async function refreshWallet(token: number) {
-    let available: boolean;
-    if (state.wallet === "apple_pay") available = true;
-    else if (state.wallet === "none") available = false;
-    else available = await adapter.detectWallet().catch(() => false);
-    if (destroyed || token !== adapterSeq) return;
-    state.walletAvailable = available;
-    renderPayment();
-    emit("wallet", { available, source: state.wallet });
-  }
-
-  async function mountAdapter() {
-    const token = ++adapterSeq;
-    unmountAdapter();
-    adapter = createMockAdapter(adapterContext);
-    adapter.mount();
-    scheduleChange();
-    await refreshWallet(token);
+  async function mountCheckout() {
+    unmountCheckout();
+    submitVisible = !!checkout.submit;
+    renderSubmit();
+    const slot = root.querySelector<HTMLElement>(CHECKOUT_SLOT);
+    if (!slot) return;
+    slot.textContent = "";
+    await checkout.mount(slot, checkoutContext);
+    if (destroyed) return;
+    checkoutMounted = true;
+    checkout.setPlan(currentProduct());
   }
 
   // ------------------------------------------------------------------ flows
-  async function pay(
-    method: "apple_pay" | "card",
-    run: () => Promise<PayResult>,
-  ) {
+  async function pay(method: string, run: () => Promise<PayResult>) {
+    if (destroyed || state.status !== "idle") return;
+    clearError();
     setStatus("processing");
     emit("checkout_initiated", { method, ...productRef() });
-    const result = await run().catch(
-      (e): PayResult => ({ error: "generic", message: errorMessage(e) }),
-    );
+    const result = await run().catch((e): PayResult => ({
+      error: "generic",
+      message: errorMessage(e),
+    }));
     if (!destroyed) finish(result);
-  }
-
-  function payWithWallet() {
-    if (state.status === "processing") return;
-    clearError();
-    void pay("apple_pay", () => adapter.payWallet());
-  }
-
-  function payWithCard(event: Event) {
-    event.preventDefault();
-    if (state.status === "processing") return;
-    clearError();
-    const invalid = adapter.validate();
-    if (invalid) {
-      showError(invalid);
-      return;
-    }
-    void pay("card", () => adapter.payCard());
   }
 
   function finish(result: PayResult) {
@@ -469,25 +421,19 @@ export function createWebPaywall(
     }
     setStatus("idle");
     if (result.cancelled) return;
-    if (!state.cardOpen) {
-      state.cardOpen = true;
-      renderPayment();
-    }
     showError(result.error || "generic", result.message);
+    emit("payment_error", {
+      provider: result.provider,
+      code: result.code ?? result.error,
+      message: result.message,
+      ...productRef(),
+    });
   }
 
-  function openMethod(card: boolean) {
-    if (state.status === "processing") return;
-    state.cardOpen = card;
-    clearError();
-    renderPayment();
-    if (!card || !view) return;
-    view.cancelAnimationFrame(frame);
-    frame = view.requestAnimationFrame(() => {
-      if (destroyed) return;
-      $("wp-card")?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
-      adapter.focus();
-    });
+  function scrollToCheckout() {
+    root
+      .querySelector(CHECKOUT_SLOT)
+      ?.scrollIntoView?.({ behavior: "smooth", block: "center" });
   }
 
   const eventElement = (e: Event) =>
@@ -532,21 +478,14 @@ export function createWebPaywall(
     (e) => {
       const target = eventElement(e);
       if (!target) return;
-      if (target.closest("#wp-applepay")) {
-        payWithWallet();
+      if (target.closest(CHECKOUT_SLOT)) return;
+      if (target.closest("#wp-cta")) {
+        if (state.status === "idle") checkout.submit?.();
         return;
       }
       const action = target.closest<HTMLElement>("[data-action]");
       if (action && root.contains(action)) {
-        const name = action.dataset.action;
-        if (name === "open-card") openMethod(true);
-        if (name === "open-wallet") openMethod(false);
-        if (name === "scroll-to-pay") {
-          $("wp-card")?.scrollIntoView?.({
-            behavior: "smooth",
-            block: "center",
-          });
-        }
+        if (action.dataset.action === "scroll-to-pay") scrollToCheckout();
         return;
       }
       const plan = target.closest<HTMLElement>(PLAN_NODES);
@@ -567,13 +506,6 @@ export function createWebPaywall(
     },
     { signal },
   );
-  root.addEventListener(
-    "submit",
-    (e) => {
-      if (eventElement(e)?.id === "wp-card") payWithCard(e);
-    },
-    { signal },
-  );
 
   // ------------------------------------------------------------------ mount
   const findTemplate = (name?: string) =>
@@ -587,14 +519,17 @@ export function createWebPaywall(
   async function mount(name?: string, nextData?: WebPaywallData) {
     const tpl = findTemplate(name);
     saveDraft();
-    unmountAdapter();
+    unmountCheckout();
     templateStyle.textContent = tpl.css;
     root.className = "wp";
     root.removeAttribute("style");
     root.dataset.template = tpl.name;
     // API html shares this page's origin. Strip script, iframe, object, embed,
     // on* handlers and javascript: URLs before the nodes are inserted.
-    root.replaceChildren(neutralizeWebPaywallHtml(tpl.html, doc));
+    root.replaceChildren(
+      neutralizeWebPaywallHtml(tpl.html, doc),
+      successPage.node,
+    );
     data = clone(nextData ?? saved[tpl.name]?.data ?? tpl.data);
     const minutes = Number(getPath(data, "timer.minutes")) || 0;
     countdownEnd = Date.now() + minutes * 60000;
@@ -602,12 +537,11 @@ export function createWebPaywall(
     Object.assign(state, {
       template: tpl.name,
       plan: null,
-      cardOpen: false,
       status: "idle",
       error: null,
     });
     renderAll();
-    await mountAdapter();
+    await mountCheckout();
     if (!destroyed) emit("template", { template: tpl.name });
     return data;
   }
@@ -660,15 +594,12 @@ export function createWebPaywall(
     },
     async setWallet(mode: WalletMode) {
       state.wallet = mode;
-      state.cardOpen = false;
-      await refreshWallet(adapterSeq);
+      if (checkoutMounted) await checkout.refresh?.();
     },
     preview(status: PreviewStatus) {
       clearError();
       if (status === "error") {
         setStatus("idle");
-        state.cardOpen = true;
-        renderPayment();
         showError("declined");
       } else {
         setStatus(status);
@@ -679,13 +610,11 @@ export function createWebPaywall(
       if (destroyed) return;
       saveDraft();
       destroyed = true;
-      adapterSeq++;
       listeners.abort();
       clearInterval(countdownTimer);
       timers.forEach((id) => clearTimeout(id));
       timers.clear();
-      view?.cancelAnimationFrame(frame);
-      unmountAdapter();
+      unmountCheckout();
       container.textContent = "";
     },
   };

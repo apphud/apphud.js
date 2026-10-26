@@ -1,10 +1,5 @@
 export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 export type JsonObject = { [key: string]: JsonValue };
 
@@ -44,6 +39,7 @@ export interface WebPaywallTemplate {
 }
 
 export type ThemeMode = "dark" | "light";
+// Mock checkout only: the builder previews the page with or without a wallet.
 export type WalletMode = "auto" | "apple_pay" | "none";
 export type PaywallStatus = "idle" | "processing" | "success";
 export type PreviewStatus = PaywallStatus | "error";
@@ -55,7 +51,6 @@ export interface WebPaywallState {
   wallet: WalletMode;
   plan: number | null;
   walletAvailable: boolean;
-  cardOpen: boolean;
   status: PaywallStatus;
   error: string | null;
 }
@@ -69,7 +64,8 @@ export type WebPaywallEventName =
   | "template"
   | "plan_selected"
   | "wallet"
-  | "checkout_initiated";
+  | "checkout_initiated"
+  | "payment_error";
 
 export type WebPaywallEventPayload = Record<string, unknown>;
 
@@ -82,6 +78,13 @@ export interface CreateWebPaywallOptions {
   theme?: ThemeMode | null;
   wallet?: WalletMode;
   userId?: string | null;
+  // Mounted into the template's [data-checkout] slot. Without it the mock
+  // checkout runs: the builder never charges.
+  checkout?: WebPaywallCheckout;
+  // Return button of the success page, already with its query. null: no
+  // return link, the page asks to go back to the app. Omitted (builder
+  // preview): the button shows without a link.
+  returnUrl?: string | null;
   // Per-template drafts; the engine writes into it on template switch and destroy.
   saved?: Record<string, WebPaywallDraft>;
   onEvent?: (
@@ -111,19 +114,43 @@ export interface WebPaywall {
 }
 
 export interface PayResult {
+  // Paid and synced: the renderer shows the success page.
   ok?: boolean;
+  // Closed by the user: no error.
   cancelled?: boolean;
+  // Key in the template's `errors` texts (`declined`, `incomplete`, `generic`).
   error?: string;
+  // Shown instead of the `errors` text, e.g. the provider's own message.
   message?: string;
+  // For the `payment_error` event.
+  provider?: string;
+  code?: string;
 }
 
-export interface CardAdapter {
-  mount: () => Promise<void> | void;
-  refresh: () => void;
+// What the renderer gives the checkout mounted into [data-checkout].
+export interface CheckoutContext {
+  readonly doc: Document;
+  locale: () => string;
+  // Localized text by data path, e.g. `payment.processing`.
+  text: (path: string) => string;
+  // Runs a payment the user has started: processing until `run` settles,
+  // `checkout_initiated` first, then the success page or the error.
+  pay: (method: string, run: () => Promise<PayResult>) => Promise<void>;
+  // Shows an error that is not a payment attempt, e.g. incomplete fields.
+  fail: (result: PayResult) => void;
+  clearError: () => void;
+  // Shows or hides the template's pay button (#wp-cta): Paddle has its own.
+  setSubmit: (visible: boolean) => void;
+  busy: () => boolean;
+}
+
+export interface WebPaywallCheckout {
+  mount: (slot: HTMLElement, ctx: CheckoutContext) => Promise<void> | void;
+  // The selected plan; null when it has no bundle.
+  setPlan: (product: PlanProduct | null) => void;
+  // The template's pay button (#wp-cta) was pressed.
+  submit?: () => void;
+  // Locale, theme, data or wallet mode changed.
+  refresh?: () => Promise<void> | void;
   unmount: () => void;
-  focus: () => void;
-  detectWallet: () => Promise<boolean>;
-  validate: () => string | null;
-  payCard: () => Promise<PayResult>;
-  payWallet: () => Promise<PayResult>;
 }

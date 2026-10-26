@@ -1,81 +1,5 @@
 [
   {
-    "name": "Close button",
-    "slug": "dismiss_button",
-    "fields": [
-      {
-        "id": "icon",
-        "type": "select",
-        "label": "Icon",
-        "default": "@close",
-        "options": [
-          {
-            "name": "Close",
-            "value": "@close"
-          },
-          {
-            "name": "Chart",
-            "value": "@chart"
-          },
-          {
-            "name": "Flask",
-            "value": "@flask"
-          },
-          {
-            "name": "Link",
-            "value": "@link"
-          },
-          {
-            "name": "Chat",
-            "value": "@chat"
-          },
-          {
-            "name": "Lock",
-            "value": "@lock"
-          },
-          {
-            "name": "Check",
-            "value": "@check"
-          },
-          {
-            "name": "Card",
-            "value": "@card"
-          },
-          {
-            "name": "Alert",
-            "value": "@alert"
-          },
-          {
-            "name": "Star",
-            "value": "@star"
-          },
-          {
-            "name": "Star fill",
-            "value": "@star_fill"
-          },
-          {
-            "name": "Bolt",
-            "value": "@bolt"
-          },
-          {
-            "name": "Shield",
-            "value": "@shield"
-          },
-          {
-            "name": "Apple",
-            "value": "@apple"
-          }
-        ]
-      },
-      {
-        "id": "url",
-        "type": "url",
-        "label": "URL",
-        "default": "https://pay.apphud.com/close"
-      }
-    ]
-  },
-  {
     "name": "Header",
     "slug": "header",
     "fields": [
@@ -526,37 +450,6 @@
     ]
   },
   {
-    "name": "Card brands",
-    "slug": "card_brands",
-    "collection": true,
-    "fields": [
-      {
-        "id": "brand",
-        "type": "select",
-        "label": "Brand",
-        "default": "@visa",
-        "options": [
-          {
-            "name": "Visa",
-            "value": "@visa"
-          },
-          {
-            "name": "Mastercard",
-            "value": "@mastercard"
-          },
-          {
-            "name": "Amex",
-            "value": "@amex"
-          },
-          {
-            "name": "Card generic",
-            "value": "@card_generic"
-          }
-        ]
-      }
-    ]
-  },
-  {
     "name": "Trust line",
     "slug": "trust",
     "fields": [
@@ -753,100 +646,6 @@
         "type": "text",
         "label": "Generic",
         "default": "Something went wrong. Please try again."
-      }
-    ]
-  },
-  {
-    "name": "Success screen",
-    "slug": "success",
-    "fields": [
-      {
-        "id": "icon",
-        "type": "select",
-        "label": "Icon",
-        "default": "@check",
-        "options": [
-          {
-            "name": "Close",
-            "value": "@close"
-          },
-          {
-            "name": "Chart",
-            "value": "@chart"
-          },
-          {
-            "name": "Flask",
-            "value": "@flask"
-          },
-          {
-            "name": "Link",
-            "value": "@link"
-          },
-          {
-            "name": "Chat",
-            "value": "@chat"
-          },
-          {
-            "name": "Lock",
-            "value": "@lock"
-          },
-          {
-            "name": "Check",
-            "value": "@check"
-          },
-          {
-            "name": "Card",
-            "value": "@card"
-          },
-          {
-            "name": "Alert",
-            "value": "@alert"
-          },
-          {
-            "name": "Star",
-            "value": "@star"
-          },
-          {
-            "name": "Star fill",
-            "value": "@star_fill"
-          },
-          {
-            "name": "Bolt",
-            "value": "@bolt"
-          },
-          {
-            "name": "Shield",
-            "value": "@shield"
-          },
-          {
-            "name": "Apple",
-            "value": "@apple"
-          }
-        ]
-      },
-      {
-        "id": "title",
-        "type": "text",
-        "label": "Title",
-        "default": "Welcome to Premium!"
-      },
-      {
-        "id": "text",
-        "type": "textarea",
-        "label": "Text",
-        "default": "Your subscription is active. You can go back to the app."
-      },
-      {
-        "id": "button",
-        "type": "text",
-        "label": "Button",
-        "default": "Continue"
-      },
-      {
-        "id": "button_url",
-        "type": "url",
-        "label": "Button URL",
-        "default": "https://pay.apphud.com/close"
       }
     ]
   },
@@ -1169,6 +968,42 @@
         "type": "color",
         "label": "Field border",
         "default": "rgba(255, 255, 255, 0.12)"
+      }
+    ]
+  },
+  {
+    "name": "Success page",
+    "slug": "success_page",
+    "fields": [
+      {
+        "id": "title",
+        "type": "text",
+        "label": "Title",
+        "default": "Payment successful"
+      },
+      {
+        "id": "subtitle",
+        "type": "textarea",
+        "label": "Subtitle",
+        "default": "Your subscription is active."
+      },
+      {
+        "id": "button",
+        "type": "text",
+        "label": "Return button",
+        "default": "Return to the app"
+      },
+      {
+        "id": "no_return_text",
+        "type": "textarea",
+        "label": "Text without a return link",
+        "default": "Go back to the app to start using your subscription."
+      },
+      {
+        "id": "css",
+        "type": "textarea",
+        "label": "Custom CSS",
+        "default": ""
       }
     ]
   }

@@ -54,10 +54,6 @@
     "field": "#FFFFFF",
     "field_border": "#DCE4EE"
   },
-  "dismiss_button": {
-    "icon": "@close",
-    "url": "https://pay.apphud.com/close"
-  },
   "header": {
     "app_icon": "@app",
     "eyebrow": {
@@ -98,22 +94,6 @@
       "en": "Something went wrong. Please try again.",
       "ru": "Что-то пошло не так. Попробуйте ещё раз."
     }
-  },
-  "success": {
-    "icon": "@check",
-    "title": {
-      "en": "Welcome to Premium!",
-      "ru": "Добро пожаловать в Premium!"
-    },
-    "text": {
-      "en": "Your subscription is active. You can go back to the app.",
-      "ru": "Подписка активна. Можно вернуться в приложение."
-    },
-    "button": {
-      "en": "Continue",
-      "ru": "Продолжить"
-    },
-    "button_url": "https://pay.apphud.com/close"
   },
   "information": {
     "legal": {
@@ -294,15 +274,23 @@
       "ru": "Оплачиваем…"
     }
   },
-  "card_brands": [
-    {
-      "brand": "@visa"
+  "success_page": {
+    "title": {
+      "en": "Welcome to Premium!",
+      "ru": "Добро пожаловать в Premium!"
     },
-    {
-      "brand": "@mastercard"
+    "subtitle": {
+      "en": "Your subscription is active.",
+      "ru": "Подписка активна."
     },
-    {
-      "brand": "@amex"
-    }
-  ]
+    "button": {
+      "en": "Back to the app",
+      "ru": "Вернуться в приложение"
+    },
+    "no_return_text": {
+      "en": "",
+      "ru": ""
+    },
+    "css": ""
+  }
 }
