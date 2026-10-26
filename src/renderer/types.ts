@@ -85,6 +85,9 @@ export interface CreateWebPaywallOptions {
   // return link, the page asks to go back to the app. Omitted (builder
   // preview): the button shows without a link.
   returnUrl?: string | null;
+  // The hosted page: the device's own safe area instead of the builder's
+  // device frame insets.
+  hosted?: boolean;
   // Per-template drafts; the engine writes into it on template switch and destroy.
   saved?: Record<string, WebPaywallDraft>;
   onEvent?: (

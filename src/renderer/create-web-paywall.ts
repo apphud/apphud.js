@@ -3,7 +3,7 @@ import { formatText, getPath, type MacroContext } from "./macros";
 import { createMockCheckout } from "./mock-checkout";
 import { cssUrl, safeHref } from "./safe-url";
 import { neutralizeWebPaywallHtml } from "./sanitize-html";
-import { STAGE_CSS } from "./stage-css";
+import { DEVICE_INSETS_CSS, STAGE_CSS } from "./stage-css";
 import {
   createSuccessPage,
   defaultSuccessText,
@@ -58,7 +58,8 @@ export function createWebPaywall(
 
   container.textContent = "";
   const stageStyle = doc.createElement("style");
-  stageStyle.textContent = STAGE_CSS + SUCCESS_CSS;
+  stageStyle.textContent =
+    STAGE_CSS + (options.hosted ? "" : DEVICE_INSETS_CSS) + SUCCESS_CSS;
   const templateStyle = doc.createElement("style");
   templateStyle.setAttribute("data-wp-template", "");
   // `success_page.css` from the screen data, over the base success page CSS.

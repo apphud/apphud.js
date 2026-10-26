@@ -62,7 +62,8 @@ export default [
     output: {
       name: "ApphudCheckout",
       file: `${outDir}/apphud-checkout.js`,
-      format: "umd"
+      format: "umd",
+      banner: `window.ApphudCheckoutVersion = '${pkg.version}';`
     },
     plugins: plugins
   },
