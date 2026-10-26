@@ -1,0 +1,218 @@
+{
+  "theme": {
+    "mode": "light",
+    "font": "Inter",
+    "heading_font": "Manrope",
+    "radius": 12
+  },
+  "theme_dark": {
+    "background": "#0C0A14",
+    "surface": "#16131F",
+    "hero": "#221B36",
+    "border": "#2B2638",
+    "radio": "#5D5870",
+    "text": "#F5F3FA",
+    "text_secondary": "#A29DB3",
+    "text_tertiary": "#6E6982",
+    "accent": "#9D74FF",
+    "accent_soft": "rgba(157, 116, 255, 0.14)",
+    "accent_ring": "rgba(157, 116, 255, 0.22)",
+    "price_new": "#FF5A64",
+    "button": "#F5F3FA",
+    "on_button": "#16131F",
+    "danger": "#FF5C75",
+    "danger_soft": "rgba(255, 92, 117, 0.12)",
+    "success": "#32D583",
+    "field": "#16131F",
+    "field_border": "#3A3448"
+  },
+  "theme_light": {
+    "background": "#FFFFFF",
+    "surface": "#FFFFFF",
+    "hero": "#EEE8FF",
+    "border": "#E4E7EC",
+    "radio": "#98A2B3",
+    "text": "#101828",
+    "text_secondary": "#667085",
+    "text_tertiary": "#98A2B3",
+    "accent": "#8955FF",
+    "accent_soft": "rgba(137, 85, 255, 0.10)",
+    "accent_ring": "rgba(137, 85, 255, 0.16)",
+    "price_new": "#F2303F",
+    "button": "#344054",
+    "on_button": "#FFFFFF",
+    "danger": "#E5344F",
+    "danger_soft": "rgba(229, 52, 79, 0.08)",
+    "success": "#12B76A",
+    "field": "#FFFFFF",
+    "field_border": "#D0D5DD"
+  },
+  "dismiss_button": {
+    "icon": "@close",
+    "url": "https://pay.apphud.com/close"
+  },
+  "header": {
+    "app_icon": "https://framerusercontent.com/images/FaKbf5ahFHSx51du4GFfGSiJKow.jpg?width=128&height=128",
+    "brand": {
+      "en": "AYA — AI Baby Assistant",
+      "ru": "AYA — AI-ассистент для малыша"
+    }
+  },
+  "title": {
+    "text": {
+      "en": "Select your payment method",
+      "ru": "Выберите способ оплаты"
+    }
+  },
+  "offer": {
+    "image": "https://framerusercontent.com/images/cFUazfHAFg97qEbdFaQtoXsvzFI.jpg?width=780&height=510",
+    "total_title": {
+      "en": "Total",
+      "ru": "Итого"
+    }
+  },
+  "trust": {
+    "icon": "@shield",
+    "text": {
+      "en": "All transactions are fully protected with advanced encryption and PCI-DSS compliant processing, ensuring your personal and payment information remains secure throughout your purchase.",
+      "ru": "Все платежи защищены современным шифрованием и обрабатываются по стандарту PCI-DSS — ваши личные и платёжные данные в безопасности на всех этапах покупки."
+    }
+  },
+  "errors": {
+    "icon": "@alert",
+    "incomplete": {
+      "en": "Enter your full card details.",
+      "ru": "Заполните данные карты полностью."
+    },
+    "declined": {
+      "en": "Your card was declined. Try another card.",
+      "ru": "Карта отклонена. Попробуйте другую карту."
+    },
+    "generic": {
+      "en": "Something went wrong. Please try again.",
+      "ru": "Что-то пошло не так. Попробуйте ещё раз."
+    }
+  },
+  "success": {
+    "icon": "@check",
+    "title": {
+      "en": "You're all set!",
+      "ru": "Всё готово!"
+    },
+    "text": {
+      "en": "Your plan is active. Go back to the app to meet AYA.",
+      "ru": "План активен. Возвращайтесь в приложение — AYA уже ждёт."
+    },
+    "button": {
+      "en": "Open the app",
+      "ru": "Открыть приложение"
+    },
+    "button_url": "https://pay.apphud.com/close"
+  },
+  "information": {
+    "legal": {
+      "en": "",
+      "ru": ""
+    },
+    "terms_title": {
+      "en": "Terms of Use",
+      "ru": "Условия использования"
+    },
+    "terms_url": "https://web.cryanalyzer.com/terms",
+    "privacy_title": {
+      "en": "Privacy Policy",
+      "ru": "Политика конфиденциальности"
+    },
+    "privacy_url": "https://web.cryanalyzer.com/privacy"
+  },
+  "plans": [
+    {
+      "product": {
+        "bundle_id": ""
+      },
+      "name": {
+        "en": "Yearly plan",
+        "ru": "Годовой план"
+      },
+      "badge": {
+        "en": "−50%",
+        "ru": "−50%"
+      },
+      "title": {
+        "en": "Personalized Plan",
+        "ru": "Персональный план"
+      },
+      "price": {
+        "en": "$59.99",
+        "ru": "59,99 $"
+      },
+      "discount_title": {
+        "en": "Introductory offer discount",
+        "ru": "Скидка на первый период"
+      },
+      "discount": {
+        "en": "−$30.00",
+        "ru": "−30,00 $"
+      },
+      "old_total": {
+        "en": "$59.99",
+        "ru": "59,99 $"
+      },
+      "total": {
+        "en": "$29.99",
+        "ru": "29,99 $"
+      },
+      "summary": {
+        "en": "$29.99 for the first year, then $59.99 per year. Cancel anytime.",
+        "ru": "29,99 $ за первый год, затем 59,99 $ в год. Отмена в любой момент."
+      }
+    }
+  ],
+  "plans_settings": {
+    "default_plan": 1
+  },
+  "payment": {
+    "apple_pay_type": "plain",
+    "apple_pay_style": "black",
+    "card_title": {
+      "en": "Card Payment",
+      "ru": "Оплата картой"
+    },
+    "card_button": {
+      "en": "Pay Now",
+      "ru": "Оплатить"
+    },
+    "wallet_title": {
+      "en": "Apple Pay",
+      "ru": "Apple Pay"
+    },
+    "wallet_icon": "@apple",
+    "number_placeholder": {
+      "en": "Card number",
+      "ru": "Номер карты"
+    },
+    "expiry_placeholder": {
+      "en": "MM / YY",
+      "ru": "ММ / ГГ"
+    },
+    "cvc_placeholder": {
+      "en": "CVC",
+      "ru": "CVC"
+    },
+    "processing": {
+      "en": "Processing…",
+      "ru": "Оплачиваем…"
+    }
+  },
+  "card_brands": [
+    {
+      "brand": "@visa"
+    },
+    {
+      "brand": "@mastercard"
+    },
+    {
+      "brand": "@amex"
+    }
+  ]
+}

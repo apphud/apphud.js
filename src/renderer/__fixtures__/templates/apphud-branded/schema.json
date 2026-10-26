@@ -1,0 +1,1175 @@
+[
+  {
+    "name": "Close button",
+    "slug": "dismiss_button",
+    "fields": [
+      {
+        "id": "icon",
+        "type": "select",
+        "label": "Icon",
+        "default": "@close",
+        "options": [
+          {
+            "name": "Close",
+            "value": "@close"
+          },
+          {
+            "name": "Chart",
+            "value": "@chart"
+          },
+          {
+            "name": "Flask",
+            "value": "@flask"
+          },
+          {
+            "name": "Link",
+            "value": "@link"
+          },
+          {
+            "name": "Chat",
+            "value": "@chat"
+          },
+          {
+            "name": "Lock",
+            "value": "@lock"
+          },
+          {
+            "name": "Check",
+            "value": "@check"
+          },
+          {
+            "name": "Card",
+            "value": "@card"
+          },
+          {
+            "name": "Alert",
+            "value": "@alert"
+          },
+          {
+            "name": "Star",
+            "value": "@star"
+          },
+          {
+            "name": "Star fill",
+            "value": "@star_fill"
+          },
+          {
+            "name": "Bolt",
+            "value": "@bolt"
+          },
+          {
+            "name": "Shield",
+            "value": "@shield"
+          },
+          {
+            "name": "Apple",
+            "value": "@apple"
+          }
+        ]
+      },
+      {
+        "id": "url",
+        "type": "url",
+        "label": "URL",
+        "default": "https://pay.apphud.com/close"
+      }
+    ]
+  },
+  {
+    "name": "Header",
+    "slug": "header",
+    "fields": [
+      {
+        "id": "app_icon",
+        "type": "image",
+        "label": "App icon",
+        "default": "@app"
+      },
+      {
+        "id": "eyebrow",
+        "type": "text",
+        "label": "Eyebrow",
+        "default": "Apphud Premium"
+      }
+    ]
+  },
+  {
+    "name": "Title",
+    "slug": "title",
+    "fields": [
+      {
+        "id": "text",
+        "type": "textarea",
+        "label": "Text",
+        "default": "Grow your subscription revenue"
+      }
+    ]
+  },
+  {
+    "name": "Subtitle",
+    "slug": "subtitle",
+    "fields": [
+      {
+        "id": "text",
+        "type": "textarea",
+        "label": "Text",
+        "default": "Analytics, paywall experiments and integrations — all in one place."
+      }
+    ]
+  },
+  {
+    "name": "Features",
+    "slug": "features",
+    "collection": true,
+    "fields": [
+      {
+        "id": "icon",
+        "type": "select",
+        "label": "Icon",
+        "default": "@chart",
+        "options": [
+          {
+            "name": "Close",
+            "value": "@close"
+          },
+          {
+            "name": "Chart",
+            "value": "@chart"
+          },
+          {
+            "name": "Flask",
+            "value": "@flask"
+          },
+          {
+            "name": "Link",
+            "value": "@link"
+          },
+          {
+            "name": "Chat",
+            "value": "@chat"
+          },
+          {
+            "name": "Lock",
+            "value": "@lock"
+          },
+          {
+            "name": "Check",
+            "value": "@check"
+          },
+          {
+            "name": "Card",
+            "value": "@card"
+          },
+          {
+            "name": "Alert",
+            "value": "@alert"
+          },
+          {
+            "name": "Star",
+            "value": "@star"
+          },
+          {
+            "name": "Star fill",
+            "value": "@star_fill"
+          },
+          {
+            "name": "Bolt",
+            "value": "@bolt"
+          },
+          {
+            "name": "Shield",
+            "value": "@shield"
+          },
+          {
+            "name": "Apple",
+            "value": "@apple"
+          }
+        ]
+      },
+      {
+        "id": "icon_mode",
+        "type": "select",
+        "label": "Icon mode",
+        "default": "tint",
+        "options": [
+          {
+            "name": "Tint",
+            "value": "tint"
+          },
+          {
+            "name": "Original",
+            "value": "original"
+          }
+        ]
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "label": "Title",
+        "default": "Real-time revenue analytics"
+      },
+      {
+        "id": "text",
+        "type": "textarea",
+        "label": "Text",
+        "default": ""
+      }
+    ]
+  },
+  {
+    "name": "Plans",
+    "slug": "plans",
+    "collection": true,
+    "fields": [
+      {
+        "id": "product",
+        "type": "web_product",
+        "label": "Product",
+        "default": {
+          "bundle_id": ""
+        }
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "label": "Title",
+        "default": "Yearly"
+      },
+      {
+        "id": "trial",
+        "type": "text",
+        "label": "Trial",
+        "default": "3 days free"
+      },
+      {
+        "id": "price",
+        "type": "text",
+        "label": "Price",
+        "default": "$49.99 / year",
+        "info": "Typed by hand: keep it in line with the Stripe price of this plan's base_plan_id."
+      },
+      {
+        "id": "unit_price",
+        "type": "text",
+        "label": "Unit price",
+        "default": "$0.96",
+        "info": "Typed by hand: keep it in line with the Stripe price of this plan's base_plan_id."
+      },
+      {
+        "id": "unit_label",
+        "type": "text",
+        "label": "Unit label",
+        "default": "per week"
+      },
+      {
+        "id": "badge",
+        "type": "text",
+        "label": "Badge",
+        "default": "SAVE 58%"
+      },
+      {
+        "id": "summary",
+        "type": "textarea",
+        "label": "Summary",
+        "default": "Free until {{ today | add_days: 3 }}, then $49.99 per year. Cancel anytime."
+      },
+      {
+        "id": "cta",
+        "type": "text",
+        "label": "Button",
+        "default": "Start free trial"
+      }
+    ]
+  },
+  {
+    "name": "Plan settings",
+    "slug": "plans_settings",
+    "fields": [
+      {
+        "id": "default_plan",
+        "type": "number",
+        "label": "Default plan",
+        "default": 1
+      },
+      {
+        "id": "check_icon",
+        "type": "select",
+        "label": "Check icon",
+        "default": "@check",
+        "options": [
+          {
+            "name": "Close",
+            "value": "@close"
+          },
+          {
+            "name": "Chart",
+            "value": "@chart"
+          },
+          {
+            "name": "Flask",
+            "value": "@flask"
+          },
+          {
+            "name": "Link",
+            "value": "@link"
+          },
+          {
+            "name": "Chat",
+            "value": "@chat"
+          },
+          {
+            "name": "Lock",
+            "value": "@lock"
+          },
+          {
+            "name": "Check",
+            "value": "@check"
+          },
+          {
+            "name": "Card",
+            "value": "@card"
+          },
+          {
+            "name": "Alert",
+            "value": "@alert"
+          },
+          {
+            "name": "Star",
+            "value": "@star"
+          },
+          {
+            "name": "Star fill",
+            "value": "@star_fill"
+          },
+          {
+            "name": "Bolt",
+            "value": "@bolt"
+          },
+          {
+            "name": "Shield",
+            "value": "@shield"
+          },
+          {
+            "name": "Apple",
+            "value": "@apple"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Payment",
+    "slug": "payment",
+    "fields": [
+      {
+        "id": "apple_pay_type",
+        "type": "select",
+        "label": "Apple pay type",
+        "default": "subscribe",
+        "options": [
+          {
+            "name": "Subscribe with",
+            "value": "subscribe"
+          },
+          {
+            "name": "Buy with",
+            "value": "buy"
+          },
+          {
+            "name": "Continue with",
+            "value": "continue"
+          },
+          {
+            "name": "Check out with",
+            "value": "check-out"
+          },
+          {
+            "name": "Set up",
+            "value": "set-up"
+          },
+          {
+            "name": "Apple Pay only",
+            "value": "plain"
+          }
+        ]
+      },
+      {
+        "id": "apple_pay_style",
+        "type": "select",
+        "label": "Apple pay style",
+        "default": "auto",
+        "options": [
+          {
+            "name": "Auto",
+            "value": "auto"
+          },
+          {
+            "name": "Black",
+            "value": "black"
+          },
+          {
+            "name": "White",
+            "value": "white"
+          },
+          {
+            "name": "White outline",
+            "value": "white-outline"
+          }
+        ]
+      },
+      {
+        "id": "card_icon",
+        "type": "select",
+        "label": "Card icon",
+        "default": "@card",
+        "options": [
+          {
+            "name": "Close",
+            "value": "@close"
+          },
+          {
+            "name": "Chart",
+            "value": "@chart"
+          },
+          {
+            "name": "Flask",
+            "value": "@flask"
+          },
+          {
+            "name": "Link",
+            "value": "@link"
+          },
+          {
+            "name": "Chat",
+            "value": "@chat"
+          },
+          {
+            "name": "Lock",
+            "value": "@lock"
+          },
+          {
+            "name": "Check",
+            "value": "@check"
+          },
+          {
+            "name": "Card",
+            "value": "@card"
+          },
+          {
+            "name": "Alert",
+            "value": "@alert"
+          },
+          {
+            "name": "Star",
+            "value": "@star"
+          },
+          {
+            "name": "Star fill",
+            "value": "@star_fill"
+          },
+          {
+            "name": "Bolt",
+            "value": "@bolt"
+          },
+          {
+            "name": "Shield",
+            "value": "@shield"
+          },
+          {
+            "name": "Apple",
+            "value": "@apple"
+          }
+        ]
+      },
+      {
+        "id": "divider",
+        "type": "text",
+        "label": "Divider",
+        "default": "or"
+      },
+      {
+        "id": "other_methods",
+        "type": "text",
+        "label": "Other methods",
+        "default": "Pay with card"
+      },
+      {
+        "id": "card_title",
+        "type": "text",
+        "label": "Card title",
+        "default": "Card details"
+      },
+      {
+        "id": "number_placeholder",
+        "type": "text",
+        "label": "Number placeholder",
+        "default": "Card number"
+      },
+      {
+        "id": "expiry_placeholder",
+        "type": "text",
+        "label": "Expiry placeholder",
+        "default": "MM / YY"
+      },
+      {
+        "id": "cvc_placeholder",
+        "type": "text",
+        "label": "CVC placeholder",
+        "default": "CVC"
+      },
+      {
+        "id": "processing",
+        "type": "text",
+        "label": "Processing",
+        "default": "Processing…"
+      }
+    ]
+  },
+  {
+    "name": "Card brands",
+    "slug": "card_brands",
+    "collection": true,
+    "fields": [
+      {
+        "id": "brand",
+        "type": "select",
+        "label": "Brand",
+        "default": "@visa",
+        "options": [
+          {
+            "name": "Visa",
+            "value": "@visa"
+          },
+          {
+            "name": "Mastercard",
+            "value": "@mastercard"
+          },
+          {
+            "name": "Amex",
+            "value": "@amex"
+          },
+          {
+            "name": "Card generic",
+            "value": "@card_generic"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Trust line",
+    "slug": "trust",
+    "fields": [
+      {
+        "id": "icon",
+        "type": "select",
+        "label": "Icon",
+        "default": "@lock",
+        "options": [
+          {
+            "name": "Close",
+            "value": "@close"
+          },
+          {
+            "name": "Chart",
+            "value": "@chart"
+          },
+          {
+            "name": "Flask",
+            "value": "@flask"
+          },
+          {
+            "name": "Link",
+            "value": "@link"
+          },
+          {
+            "name": "Chat",
+            "value": "@chat"
+          },
+          {
+            "name": "Lock",
+            "value": "@lock"
+          },
+          {
+            "name": "Check",
+            "value": "@check"
+          },
+          {
+            "name": "Card",
+            "value": "@card"
+          },
+          {
+            "name": "Alert",
+            "value": "@alert"
+          },
+          {
+            "name": "Star",
+            "value": "@star"
+          },
+          {
+            "name": "Star fill",
+            "value": "@star_fill"
+          },
+          {
+            "name": "Bolt",
+            "value": "@bolt"
+          },
+          {
+            "name": "Shield",
+            "value": "@shield"
+          },
+          {
+            "name": "Apple",
+            "value": "@apple"
+          }
+        ]
+      },
+      {
+        "id": "text",
+        "type": "textarea",
+        "label": "Text",
+        "default": "Secured by Stripe · Cancel anytime"
+      }
+    ]
+  },
+  {
+    "name": "Legal and links",
+    "slug": "information",
+    "fields": [
+      {
+        "id": "legal",
+        "type": "textarea",
+        "label": "Legal",
+        "default": "Your subscription renews automatically at the price shown until you cancel. You can cancel anytime at least 24 hours before the next billing date."
+      },
+      {
+        "id": "terms_title",
+        "type": "text",
+        "label": "Terms title",
+        "default": "Terms of Use"
+      },
+      {
+        "id": "terms_url",
+        "type": "url",
+        "label": "Terms URL",
+        "default": "https://apphud.com/terms"
+      },
+      {
+        "id": "privacy_title",
+        "type": "text",
+        "label": "Privacy title",
+        "default": "Privacy Policy"
+      },
+      {
+        "id": "privacy_url",
+        "type": "url",
+        "label": "Privacy URL",
+        "default": "https://apphud.com/privacy"
+      }
+    ]
+  },
+  {
+    "name": "Errors",
+    "slug": "errors",
+    "fields": [
+      {
+        "id": "icon",
+        "type": "select",
+        "label": "Icon",
+        "default": "@alert",
+        "options": [
+          {
+            "name": "Close",
+            "value": "@close"
+          },
+          {
+            "name": "Chart",
+            "value": "@chart"
+          },
+          {
+            "name": "Flask",
+            "value": "@flask"
+          },
+          {
+            "name": "Link",
+            "value": "@link"
+          },
+          {
+            "name": "Chat",
+            "value": "@chat"
+          },
+          {
+            "name": "Lock",
+            "value": "@lock"
+          },
+          {
+            "name": "Check",
+            "value": "@check"
+          },
+          {
+            "name": "Card",
+            "value": "@card"
+          },
+          {
+            "name": "Alert",
+            "value": "@alert"
+          },
+          {
+            "name": "Star",
+            "value": "@star"
+          },
+          {
+            "name": "Star fill",
+            "value": "@star_fill"
+          },
+          {
+            "name": "Bolt",
+            "value": "@bolt"
+          },
+          {
+            "name": "Shield",
+            "value": "@shield"
+          },
+          {
+            "name": "Apple",
+            "value": "@apple"
+          }
+        ]
+      },
+      {
+        "id": "incomplete",
+        "type": "text",
+        "label": "Incomplete",
+        "default": "Enter your full card details."
+      },
+      {
+        "id": "declined",
+        "type": "text",
+        "label": "Declined",
+        "default": "Your card was declined. Try another card."
+      },
+      {
+        "id": "generic",
+        "type": "text",
+        "label": "Generic",
+        "default": "Something went wrong. Please try again."
+      }
+    ]
+  },
+  {
+    "name": "Success screen",
+    "slug": "success",
+    "fields": [
+      {
+        "id": "icon",
+        "type": "select",
+        "label": "Icon",
+        "default": "@check",
+        "options": [
+          {
+            "name": "Close",
+            "value": "@close"
+          },
+          {
+            "name": "Chart",
+            "value": "@chart"
+          },
+          {
+            "name": "Flask",
+            "value": "@flask"
+          },
+          {
+            "name": "Link",
+            "value": "@link"
+          },
+          {
+            "name": "Chat",
+            "value": "@chat"
+          },
+          {
+            "name": "Lock",
+            "value": "@lock"
+          },
+          {
+            "name": "Check",
+            "value": "@check"
+          },
+          {
+            "name": "Card",
+            "value": "@card"
+          },
+          {
+            "name": "Alert",
+            "value": "@alert"
+          },
+          {
+            "name": "Star",
+            "value": "@star"
+          },
+          {
+            "name": "Star fill",
+            "value": "@star_fill"
+          },
+          {
+            "name": "Bolt",
+            "value": "@bolt"
+          },
+          {
+            "name": "Shield",
+            "value": "@shield"
+          },
+          {
+            "name": "Apple",
+            "value": "@apple"
+          }
+        ]
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "label": "Title",
+        "default": "Welcome to Premium!"
+      },
+      {
+        "id": "text",
+        "type": "textarea",
+        "label": "Text",
+        "default": "Your subscription is active. You can go back to the app."
+      },
+      {
+        "id": "button",
+        "type": "text",
+        "label": "Button",
+        "default": "Continue"
+      },
+      {
+        "id": "button_url",
+        "type": "url",
+        "label": "Button URL",
+        "default": "https://pay.apphud.com/close"
+      }
+    ]
+  },
+  {
+    "name": "Theme",
+    "slug": "theme",
+    "fields": [
+      {
+        "id": "mode",
+        "type": "select",
+        "label": "Mode",
+        "default": "dark",
+        "options": [
+          {
+            "name": "Dark",
+            "value": "dark"
+          },
+          {
+            "name": "Light",
+            "value": "light"
+          }
+        ]
+      },
+      {
+        "id": "font",
+        "type": "font",
+        "label": "Font",
+        "default": "Inter"
+      },
+      {
+        "id": "radius",
+        "type": "number",
+        "label": "Radius",
+        "default": 18
+      }
+    ]
+  },
+  {
+    "name": "Light theme colors",
+    "slug": "theme_light",
+    "fields": [
+      {
+        "id": "background",
+        "type": "color",
+        "label": "Background",
+        "default": "#F4F7FB"
+      },
+      {
+        "id": "glow",
+        "type": "color",
+        "label": "Glow",
+        "default": "rgba(0, 132, 255, 0.22)"
+      },
+      {
+        "id": "glow_2",
+        "type": "color",
+        "label": "Glow 2",
+        "default": "rgba(77, 176, 255, 0.16)"
+      },
+      {
+        "id": "surface",
+        "type": "color",
+        "label": "Surface",
+        "default": "#FFFFFF"
+      },
+      {
+        "id": "surface_strong",
+        "type": "color",
+        "label": "Surface strong",
+        "default": "#EEF3F9"
+      },
+      {
+        "id": "border",
+        "type": "color",
+        "label": "Border",
+        "default": "#E2E9F2"
+      },
+      {
+        "id": "border_strong",
+        "type": "color",
+        "label": "Border strong",
+        "default": "#C3CFDD"
+      },
+      {
+        "id": "text",
+        "type": "color",
+        "label": "Text",
+        "default": "#131A2B"
+      },
+      {
+        "id": "text_secondary",
+        "type": "color",
+        "label": "Text secondary",
+        "default": "#5A687E"
+      },
+      {
+        "id": "text_tertiary",
+        "type": "color",
+        "label": "Text tertiary",
+        "default": "#95A2B5"
+      },
+      {
+        "id": "accent",
+        "type": "color",
+        "label": "Accent",
+        "default": "#0084FF"
+      },
+      {
+        "id": "accent_2",
+        "type": "color",
+        "label": "Accent 2",
+        "default": "#2B9BFF"
+      },
+      {
+        "id": "accent_soft",
+        "type": "color",
+        "label": "Accent soft",
+        "default": "rgba(0, 132, 255, 0.08)"
+      },
+      {
+        "id": "accent_strong",
+        "type": "color",
+        "label": "Accent strong",
+        "default": "#0073E6"
+      },
+      {
+        "id": "accent_ring",
+        "type": "color",
+        "label": "Accent ring",
+        "default": "rgba(0, 132, 255, 0.16)"
+      },
+      {
+        "id": "on_accent",
+        "type": "color",
+        "label": "On accent",
+        "default": "#FFFFFF"
+      },
+      {
+        "id": "badge",
+        "type": "color",
+        "label": "Badge",
+        "default": "#20BF55"
+      },
+      {
+        "id": "on_badge",
+        "type": "color",
+        "label": "On badge",
+        "default": "#FFFFFF"
+      },
+      {
+        "id": "danger",
+        "type": "color",
+        "label": "Danger",
+        "default": "#E5344F"
+      },
+      {
+        "id": "danger_soft",
+        "type": "color",
+        "label": "Danger soft",
+        "default": "rgba(229, 52, 79, 0.08)"
+      },
+      {
+        "id": "success",
+        "type": "color",
+        "label": "Success",
+        "default": "#20BF55"
+      },
+      {
+        "id": "field",
+        "type": "color",
+        "label": "Field",
+        "default": "#FFFFFF"
+      },
+      {
+        "id": "field_border",
+        "type": "color",
+        "label": "Field border",
+        "default": "#DCE4EE"
+      }
+    ]
+  },
+  {
+    "name": "Dark theme colors",
+    "slug": "theme_dark",
+    "fields": [
+      {
+        "id": "background",
+        "type": "color",
+        "label": "Background",
+        "default": "#05080F"
+      },
+      {
+        "id": "glow",
+        "type": "color",
+        "label": "Glow",
+        "default": "rgba(0, 132, 255, 0.55)"
+      },
+      {
+        "id": "glow_2",
+        "type": "color",
+        "label": "Glow 2",
+        "default": "rgba(77, 176, 255, 0.22)"
+      },
+      {
+        "id": "surface",
+        "type": "color",
+        "label": "Surface",
+        "default": "rgba(255, 255, 255, 0.05)"
+      },
+      {
+        "id": "surface_strong",
+        "type": "color",
+        "label": "Surface strong",
+        "default": "rgba(255, 255, 255, 0.10)"
+      },
+      {
+        "id": "border",
+        "type": "color",
+        "label": "Border",
+        "default": "rgba(255, 255, 255, 0.10)"
+      },
+      {
+        "id": "border_strong",
+        "type": "color",
+        "label": "Border strong",
+        "default": "rgba(255, 255, 255, 0.28)"
+      },
+      {
+        "id": "text",
+        "type": "color",
+        "label": "Text",
+        "default": "#FFFFFF"
+      },
+      {
+        "id": "text_secondary",
+        "type": "color",
+        "label": "Text secondary",
+        "default": "rgba(226, 234, 248, 0.68)"
+      },
+      {
+        "id": "text_tertiary",
+        "type": "color",
+        "label": "Text tertiary",
+        "default": "rgba(226, 234, 248, 0.42)"
+      },
+      {
+        "id": "accent",
+        "type": "color",
+        "label": "Accent",
+        "default": "#0084FF"
+      },
+      {
+        "id": "accent_2",
+        "type": "color",
+        "label": "Accent 2",
+        "default": "#3AA0FF"
+      },
+      {
+        "id": "accent_soft",
+        "type": "color",
+        "label": "Accent soft",
+        "default": "rgba(0, 132, 255, 0.14)"
+      },
+      {
+        "id": "accent_strong",
+        "type": "color",
+        "label": "Accent strong",
+        "default": "#5CB1FF"
+      },
+      {
+        "id": "accent_ring",
+        "type": "color",
+        "label": "Accent ring",
+        "default": "rgba(0, 132, 255, 0.24)"
+      },
+      {
+        "id": "on_accent",
+        "type": "color",
+        "label": "On accent",
+        "default": "#FFFFFF"
+      },
+      {
+        "id": "badge",
+        "type": "color",
+        "label": "Badge",
+        "default": "#20BF55"
+      },
+      {
+        "id": "on_badge",
+        "type": "color",
+        "label": "On badge",
+        "default": "#FFFFFF"
+      },
+      {
+        "id": "danger",
+        "type": "color",
+        "label": "Danger",
+        "default": "#FF5C75"
+      },
+      {
+        "id": "danger_soft",
+        "type": "color",
+        "label": "Danger soft",
+        "default": "rgba(255, 92, 117, 0.12)"
+      },
+      {
+        "id": "success",
+        "type": "color",
+        "label": "Success",
+        "default": "#20BF55"
+      },
+      {
+        "id": "field",
+        "type": "color",
+        "label": "Field",
+        "default": "rgba(255, 255, 255, 0.05)"
+      },
+      {
+        "id": "field_border",
+        "type": "color",
+        "label": "Field border",
+        "default": "rgba(255, 255, 255, 0.12)"
+      }
+    ]
+  }
+]

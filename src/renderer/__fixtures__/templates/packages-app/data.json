@@ -1,0 +1,320 @@
+{
+  "theme": {
+    "mode": "light",
+    "font": "Montserrat",
+    "radius": 16
+  },
+  "theme_dark": {
+    "background": "#14110F",
+    "surface": "#1E1A17",
+    "surface_soft": "#2A211B",
+    "border": "#342C26",
+    "text": "#F7F3EF",
+    "text_secondary": "#B8AFA7",
+    "text_tertiary": "#7E766F",
+    "accent": "#FF7A2F",
+    "accent_soft": "rgba(255, 122, 47, 0.14)",
+    "accent_ring": "rgba(255, 122, 47, 0.24)",
+    "on_accent": "#FFFFFF",
+    "button": "#20C77A",
+    "on_button": "#FFFFFF",
+    "star": "#FFB21E",
+    "danger": "#FF5C75",
+    "danger_soft": "rgba(255, 92, 117, 0.12)",
+    "field": "#1E1A17",
+    "field_border": "#3E352E"
+  },
+  "theme_light": {
+    "background": "#FFFDFB",
+    "surface": "#FFFFFF",
+    "surface_soft": "#FFF4EB",
+    "border": "#F1E4D8",
+    "text": "#212121",
+    "text_secondary": "#5E5A57",
+    "text_tertiary": "#9C958F",
+    "accent": "#FB6514",
+    "accent_soft": "rgba(251, 101, 20, 0.10)",
+    "accent_ring": "rgba(251, 101, 20, 0.18)",
+    "on_accent": "#FFFFFF",
+    "button": "#12B76A",
+    "on_button": "#FFFFFF",
+    "star": "#FFB21E",
+    "danger": "#E5344F",
+    "danger_soft": "rgba(229, 52, 79, 0.08)",
+    "field": "#FFFFFF",
+    "field_border": "#E4DCD4"
+  },
+  "timer": {
+    "minutes": 10,
+    "title": {
+      "en": "Offer expires in:",
+      "ru": "Предложение истекает через:"
+    },
+    "button": {
+      "en": "Get My Plan",
+      "ru": "Получить план"
+    }
+  },
+  "header": {
+    "app_icon": "https://framerusercontent.com/images/0uXeEmqFluqVy1t46YX5NfBHS0U.svg",
+    "brand": {
+      "en": "Packy",
+      "ru": "Packy"
+    },
+    "chip": {
+      "en": "PRO",
+      "ru": "PRO"
+    }
+  },
+  "title": {
+    "text": {
+      "en": "Unlock unlimited tracking",
+      "ru": "Безлимитное отслеживание"
+    }
+  },
+  "subtitle": {
+    "text": {
+      "en": "50% OFF today",
+      "ru": "Скидка 50% сегодня"
+    }
+  },
+  "guarantee": {
+    "icon": "@shield",
+    "line": {
+      "en": "30-day money-back guarantee",
+      "ru": "Возврат денег в течение 30 дней"
+    },
+    "image": "https://framerusercontent.com/images/Omqgwjugy4PvYXMlCorLnyntUeE.png",
+    "title": {
+      "en": "100% Money-Back Guarantee",
+      "ru": "100% гарантия возврата денег"
+    },
+    "text": {
+      "en": "We believe Packy will make tracking effortless. If you don't see the value within 30 days, contact support and we'll refund you in full.",
+      "ru": "Мы уверены, что с Packy отслеживать посылки станет проще. Если за 30 дней вы не увидите пользы — напишите в поддержку, и мы вернём деньги полностью."
+    }
+  },
+  "trust": {
+    "icon": "@lock",
+    "text": {
+      "en": "Secure payment · Cancel anytime",
+      "ru": "Безопасная оплата · Отмена в любой момент"
+    }
+  },
+  "errors": {
+    "icon": "@alert",
+    "incomplete": {
+      "en": "Enter your full card details.",
+      "ru": "Заполните данные карты полностью."
+    },
+    "declined": {
+      "en": "Your card was declined. Try another card.",
+      "ru": "Карта отклонена. Попробуйте другую карту."
+    },
+    "generic": {
+      "en": "Something went wrong. Please try again.",
+      "ru": "Что-то пошло не так. Попробуйте ещё раз."
+    }
+  },
+  "success": {
+    "image": "https://framerusercontent.com/images/Omqgwjugy4PvYXMlCorLnyntUeE.png",
+    "title": {
+      "en": "Welcome to Packy PRO!",
+      "ru": "Добро пожаловать в Packy PRO!"
+    },
+    "text": {
+      "en": "Your free trial has started. Go back to the app and track without limits.",
+      "ru": "Бесплатный период начался. Возвращайтесь в приложение и отслеживайте без ограничений."
+    },
+    "button": {
+      "en": "Open Packy",
+      "ru": "Открыть Packy"
+    },
+    "button_url": "https://pay.apphud.com/close"
+  },
+  "information": {
+    "legal": {
+      "en": "By continuing you agree that your subscription renews automatically at the price shown until you cancel in the app settings.",
+      "ru": "Продолжая, вы соглашаетесь, что подписка продлевается автоматически по указанной цене, пока вы не отмените её в настройках приложения."
+    },
+    "terms_title": {
+      "en": "Terms of Use",
+      "ru": "Условия использования"
+    },
+    "terms_url": "https://packyapp.io/terms-of-use",
+    "privacy_title": {
+      "en": "Privacy Policy",
+      "ru": "Политика конфиденциальности"
+    },
+    "privacy_url": "https://packyapp.io/privacy-policy"
+  },
+  "features": [
+    {
+      "icon": "@check",
+      "title": {
+        "en": "Unlimited package tracking",
+        "ru": "Безлимитное отслеживание посылок"
+      }
+    },
+    {
+      "icon": "@check",
+      "title": {
+        "en": "Push notifications",
+        "ru": "Push-уведомления"
+      }
+    },
+    {
+      "icon": "@check",
+      "title": {
+        "en": "1200 carriers worldwide",
+        "ru": "1200 служб доставки по всему миру"
+      }
+    }
+  ],
+  "plans": [
+    {
+      "product": {
+        "bundle_id": ""
+      },
+      "header": {
+        "en": "3-Day Free Trial",
+        "ru": "3 дня бесплатно"
+      },
+      "title": {
+        "en": "Packy Pro Weekly",
+        "ru": "Packy Pro, недельный"
+      },
+      "badge": {
+        "en": "SAVE 50%",
+        "ru": "−50%"
+      },
+      "old_price": {
+        "en": "$25.99",
+        "ru": "$25.99"
+      },
+      "price": {
+        "en": "$12.99",
+        "ru": "12,99 $"
+      },
+      "unit_price": {
+        "en": "$1.86",
+        "ru": "1,86 $"
+      },
+      "unit_label": {
+        "en": "per day",
+        "ru": "в день"
+      },
+      "summary": {
+        "en": "Free for 3 days, then $12.99 per week starting {{ today | add_days: 3 }}. Cancel anytime before to avoid being charged.",
+        "ru": "3 дня бесплатно, затем 12,99 $ в неделя с {{ today | add_days: 3 }}. Отмените заранее, чтобы не было списания."
+      },
+      "cta": {
+        "en": "Start your free trial",
+        "ru": "Начать бесплатный период"
+      }
+    }
+  ],
+  "plans_settings": {
+    "default_plan": 1
+  },
+  "payment": {
+    "title": {
+      "en": "Payment method",
+      "ru": "Способ оплаты"
+    },
+    "apple_pay_type": "subscribe",
+    "apple_pay_style": "black",
+    "card_icon": "@card",
+    "card_title": {
+      "en": "Card",
+      "ru": "Карта"
+    },
+    "card_details": {
+      "en": "Card details",
+      "ru": "Данные карты"
+    },
+    "wallet_title": {
+      "en": "Apple Pay",
+      "ru": "Apple Pay"
+    },
+    "wallet_icon": "@apple",
+    "number_placeholder": {
+      "en": "Card number",
+      "ru": "Номер карты"
+    },
+    "expiry_placeholder": {
+      "en": "MM / YY",
+      "ru": "ММ / ГГ"
+    },
+    "cvc_placeholder": {
+      "en": "CVC",
+      "ru": "CVC"
+    },
+    "processing": {
+      "en": "Processing…",
+      "ru": "Оплачиваем…"
+    }
+  },
+  "card_brands": [
+    {
+      "brand": "@visa"
+    },
+    {
+      "brand": "@mastercard"
+    },
+    {
+      "brand": "@amex"
+    }
+  ],
+  "reviews": [
+    {
+      "title": {
+        "en": "Finally, all my parcels in one place",
+        "ru": "Наконец все посылки в одном месте"
+      },
+      "text": {
+        "en": "I order from a dozen stores and Packy picks up every tracking number automatically. Notifications are instant.",
+        "ru": "Заказываю в десятке магазинов — Packy сам подхватывает все трек-номера. Уведомления приходят мгновенно."
+      },
+      "author": {
+        "en": "Emily R.",
+        "ru": "Эмили Р."
+      }
+    },
+    {
+      "title": {
+        "en": "Works with every carrier",
+        "ru": "Работает с любой службой"
+      },
+      "text": {
+        "en": "Even small local couriers are supported. Worth every cent of the Pro plan.",
+        "ru": "Поддерживает даже маленькие локальные курьерские службы. Pro стоит своих денег."
+      },
+      "author": {
+        "en": "Marcus T.",
+        "ru": "Маркус Т."
+      }
+    },
+    {
+      "title": {
+        "en": "Super simple",
+        "ru": "Очень просто"
+      },
+      "text": {
+        "en": "Clean design, no clutter. I always know when my package arrives.",
+        "ru": "Чистый дизайн, ничего лишнего. Всегда знаю, когда придёт посылка."
+      },
+      "author": {
+        "en": "Sofia L.",
+        "ru": "София Л."
+      }
+    }
+  ],
+  "reviews_settings": {
+    "title": {
+      "en": "Loved by 1M+ users",
+      "ru": "Нас любят 1M+ пользователей"
+    },
+    "star_icon": "@star_fill"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  // Type declarations of the renderer build for the dashboard builder.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": "./dist/v3/types",
+    "sourceMap": false
+  },
+  "files": ["src/entries/renderer.ts"],
+  "include": []
+}

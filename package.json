@@ -7,7 +7,7 @@
   "main": "./dist/v3/apphud.js",
   "module": "./dist/v3/apphud.esm.js",
   "scripts": {
-    "build": "rollup -c && node scripts/check-bundles.mjs",
+    "build": "rollup -c && tsc -p tsconfig.renderer.json && node scripts/check-bundles.mjs",
     "test": "vitest run",
     "lint": "eslint src",
     "docs": "typedoc"

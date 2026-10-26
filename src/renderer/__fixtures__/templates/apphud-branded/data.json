@@ -1,0 +1,308 @@
+{
+  "theme": {
+    "mode": "dark",
+    "font": "Inter",
+    "radius": 18
+  },
+  "theme_dark": {
+    "background": "#05080F",
+    "glow": "rgba(0, 132, 255, 0.55)",
+    "glow_2": "rgba(77, 176, 255, 0.22)",
+    "surface": "rgba(255, 255, 255, 0.05)",
+    "surface_strong": "rgba(255, 255, 255, 0.10)",
+    "border": "rgba(255, 255, 255, 0.10)",
+    "border_strong": "rgba(255, 255, 255, 0.28)",
+    "text": "#FFFFFF",
+    "text_secondary": "rgba(226, 234, 248, 0.68)",
+    "text_tertiary": "rgba(226, 234, 248, 0.42)",
+    "accent": "#0084FF",
+    "accent_2": "#3AA0FF",
+    "accent_soft": "rgba(0, 132, 255, 0.14)",
+    "accent_strong": "#5CB1FF",
+    "accent_ring": "rgba(0, 132, 255, 0.24)",
+    "on_accent": "#FFFFFF",
+    "badge": "#20BF55",
+    "on_badge": "#FFFFFF",
+    "danger": "#FF5C75",
+    "danger_soft": "rgba(255, 92, 117, 0.12)",
+    "success": "#20BF55",
+    "field": "rgba(255, 255, 255, 0.05)",
+    "field_border": "rgba(255, 255, 255, 0.12)"
+  },
+  "theme_light": {
+    "background": "#F4F7FB",
+    "glow": "rgba(0, 132, 255, 0.22)",
+    "glow_2": "rgba(77, 176, 255, 0.16)",
+    "surface": "#FFFFFF",
+    "surface_strong": "#EEF3F9",
+    "border": "#E2E9F2",
+    "border_strong": "#C3CFDD",
+    "text": "#131A2B",
+    "text_secondary": "#5A687E",
+    "text_tertiary": "#95A2B5",
+    "accent": "#0084FF",
+    "accent_2": "#2B9BFF",
+    "accent_soft": "rgba(0, 132, 255, 0.08)",
+    "accent_strong": "#0073E6",
+    "accent_ring": "rgba(0, 132, 255, 0.16)",
+    "on_accent": "#FFFFFF",
+    "badge": "#20BF55",
+    "on_badge": "#FFFFFF",
+    "danger": "#E5344F",
+    "danger_soft": "rgba(229, 52, 79, 0.08)",
+    "success": "#20BF55",
+    "field": "#FFFFFF",
+    "field_border": "#DCE4EE"
+  },
+  "dismiss_button": {
+    "icon": "@close",
+    "url": "https://pay.apphud.com/close"
+  },
+  "header": {
+    "app_icon": "@app",
+    "eyebrow": {
+      "en": "Apphud Premium",
+      "ru": "Apphud Premium"
+    }
+  },
+  "title": {
+    "text": {
+      "en": "Grow your subscription revenue",
+      "ru": "Растите выручку от подписок"
+    }
+  },
+  "subtitle": {
+    "text": {
+      "en": "Analytics, paywall experiments and integrations — all in one place.",
+      "ru": "Аналитика, эксперименты с пейволами и интеграции — всё в одном месте."
+    }
+  },
+  "trust": {
+    "icon": "@lock",
+    "text": {
+      "en": "Secured by Stripe · Cancel anytime",
+      "ru": "Защищено Stripe · Отмена в любой момент"
+    }
+  },
+  "errors": {
+    "icon": "@alert",
+    "incomplete": {
+      "en": "Enter your full card details.",
+      "ru": "Заполните данные карты полностью."
+    },
+    "declined": {
+      "en": "Your card was declined. Try another card.",
+      "ru": "Карта отклонена. Попробуйте другую карту."
+    },
+    "generic": {
+      "en": "Something went wrong. Please try again.",
+      "ru": "Что-то пошло не так. Попробуйте ещё раз."
+    }
+  },
+  "success": {
+    "icon": "@check",
+    "title": {
+      "en": "Welcome to Premium!",
+      "ru": "Добро пожаловать в Premium!"
+    },
+    "text": {
+      "en": "Your subscription is active. You can go back to the app.",
+      "ru": "Подписка активна. Можно вернуться в приложение."
+    },
+    "button": {
+      "en": "Continue",
+      "ru": "Продолжить"
+    },
+    "button_url": "https://pay.apphud.com/close"
+  },
+  "information": {
+    "legal": {
+      "en": "Your subscription renews automatically at the price shown until you cancel. You can cancel anytime at least 24 hours before the next billing date.",
+      "ru": "Подписка продлевается автоматически по указанной цене, пока вы её не отмените. Отменить можно в любой момент, не позднее чем за 24 часа до следующего списания."
+    },
+    "terms_title": {
+      "en": "Terms of Use",
+      "ru": "Условия использования"
+    },
+    "terms_url": "https://apphud.com/terms",
+    "privacy_title": {
+      "en": "Privacy Policy",
+      "ru": "Политика конфиденциальности"
+    },
+    "privacy_url": "https://apphud.com/privacy"
+  },
+  "features": [
+    {
+      "icon": "@chart",
+      "icon_mode": "tint",
+      "title": {
+        "en": "Real-time revenue analytics",
+        "ru": "Аналитика выручки в реальном времени"
+      },
+      "text": {
+        "en": "",
+        "ru": ""
+      }
+    },
+    {
+      "icon": "@flask",
+      "icon_mode": "tint",
+      "title": {
+        "en": "A/B tests for paywalls & prices",
+        "ru": "A/B-тесты пейволов и цен"
+      },
+      "text": {
+        "en": "",
+        "ru": ""
+      }
+    },
+    {
+      "icon": "@link",
+      "icon_mode": "tint",
+      "title": {
+        "en": "30+ integrations out of the box",
+        "ru": "30+ интеграций из коробки"
+      },
+      "text": {
+        "en": "",
+        "ru": ""
+      }
+    },
+    {
+      "icon": "@chat",
+      "icon_mode": "tint",
+      "title": {
+        "en": "Priority support from our team",
+        "ru": "Приоритетная поддержка"
+      },
+      "text": {
+        "en": "",
+        "ru": ""
+      }
+    }
+  ],
+  "plans": [
+    {
+      "product": {
+        "bundle_id": ""
+      },
+      "title": {
+        "en": "Yearly",
+        "ru": "Годовой"
+      },
+      "trial": {
+        "en": "3 days free",
+        "ru": "3 дня бесплатно"
+      },
+      "price": {
+        "en": "$49.99 / year",
+        "ru": "49,99 $ / год"
+      },
+      "unit_price": {
+        "en": "$0.96",
+        "ru": "0,96 $"
+      },
+      "unit_label": {
+        "en": "per week",
+        "ru": "в неделю"
+      },
+      "badge": {
+        "en": "SAVE 58%",
+        "ru": "−58%"
+      },
+      "summary": {
+        "en": "Free until {{ today | add_days: 3 }}, then $49.99 per year. Cancel anytime.",
+        "ru": "Бесплатно до {{ today | add_days: 3 }}, затем 49,99 $ в год. Отмена в любой момент."
+      },
+      "cta": {
+        "en": "Start free trial",
+        "ru": "Попробовать бесплатно"
+      }
+    },
+    {
+      "product": {
+        "bundle_id": ""
+      },
+      "title": {
+        "en": "Monthly",
+        "ru": "Месячный"
+      },
+      "trial": {
+        "en": "",
+        "ru": ""
+      },
+      "price": {
+        "en": "$9.99 / month",
+        "ru": "9,99 $ / месяц"
+      },
+      "unit_price": {
+        "en": "$2.33",
+        "ru": "2,33 $"
+      },
+      "unit_label": {
+        "en": "per week",
+        "ru": "в неделю"
+      },
+      "badge": {
+        "en": "",
+        "ru": ""
+      },
+      "summary": {
+        "en": "$9.99 per month. Cancel anytime.",
+        "ru": "9,99 $ в месяц. Отмена в любой момент."
+      },
+      "cta": {
+        "en": "Subscribe for $9.99",
+        "ru": "Оформить за 9,99 $"
+      }
+    }
+  ],
+  "plans_settings": {
+    "default_plan": 1,
+    "check_icon": "@check"
+  },
+  "payment": {
+    "apple_pay_type": "subscribe",
+    "apple_pay_style": "auto",
+    "card_icon": "@card",
+    "divider": {
+      "en": "or",
+      "ru": "или"
+    },
+    "other_methods": {
+      "en": "Pay with card",
+      "ru": "Оплатить картой"
+    },
+    "card_title": {
+      "en": "Card details",
+      "ru": "Данные карты"
+    },
+    "number_placeholder": {
+      "en": "Card number",
+      "ru": "Номер карты"
+    },
+    "expiry_placeholder": {
+      "en": "MM / YY",
+      "ru": "ММ / ГГ"
+    },
+    "cvc_placeholder": {
+      "en": "CVC",
+      "ru": "CVC"
+    },
+    "processing": {
+      "en": "Processing…",
+      "ru": "Оплачиваем…"
+    }
+  },
+  "card_brands": [
+    {
+      "brand": "@visa"
+    },
+    {
+      "brand": "@mastercard"
+    },
+    {
+      "brand": "@amex"
+    }
+  ]
+}
