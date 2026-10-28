@@ -6,3 +6,6 @@ yarn.lock
 .idea
 prepros.config
 dist/
+*.tgz
+.cursor/
+.codex/
