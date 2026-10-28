@@ -92,13 +92,15 @@ describe("hosted page", () => {
     expect(document.documentElement.style.background).toMatch(
       /#05080f|rgb\(5, 8, 15\)/i,
     );
-    // the only plan sells through Stripe, which waits for Checkout Sessions:
-    // the slot shows an empty light-DOM frame and the pay button is hidden
+    // the only plan sells through Stripe, and the page has no Stripe
+    // provider: the light-DOM frame shows no form and the pay button is hidden
     const projection = root?.querySelector("[data-checkout] > slot");
     expect(projection?.getAttribute("name")).toBe("apphud-checkout");
-    expect(
-      el.querySelector('[slot="apphud-checkout"]')?.childNodes,
-    ).toHaveLength(0);
+    const frame = el.querySelector('[slot="apphud-checkout"]');
+    expect(frame?.querySelector<HTMLElement>(".aph-providers")?.hidden).toBe(
+      true,
+    );
+    expect(frame?.lastElementChild?.childNodes).toHaveLength(0);
     expect(root?.querySelector<HTMLElement>("#wp-cta")?.style.display).toBe(
       "none",
     );

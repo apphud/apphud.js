@@ -39,6 +39,7 @@
     "@rollup/plugin-terser": "^1.0.0",
     "@rollup/plugin-typescript": "^11.1.6",
     "@stripe/stripe-js": "^4.5.0",
+    "@stripe/stripe-js-dahlia": "npm:@stripe/stripe-js@^9.17.0",
     "@types/eslint__js": "^8.42.3",
     "@types/node": "^22.5.0",
     "@types/ua-parser-js": "^0.7.39",

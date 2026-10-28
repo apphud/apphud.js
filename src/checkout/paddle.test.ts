@@ -133,7 +133,9 @@ describe("Paddle on the hosted page", () => {
     );
     // Paddle finds its frame in the document: a light-DOM child of the host
     expect(
-      document.getElementsByClassName("apphud-paddle-frame")[0]?.parentElement,
+      document
+        .getElementsByClassName("apphud-paddle-frame")[0]
+        ?.closest('[slot="apphud-checkout"]')?.parentElement,
     ).toBe(page.host);
     expect(page.paywall.state.status).toBe("idle");
     expect(page.cta().style.display).toBe("none");

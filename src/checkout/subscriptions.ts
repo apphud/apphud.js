@@ -9,9 +9,12 @@ import type { PagePayload, PageProvider } from "./payload";
 export type CreatedSubscription =
   | {
       ok: true;
-      // Paddle: the transaction `txn_…` and its customer `ctm_…`
+      // Paddle: the transaction `txn_…` and its customer `ctm_…`. Stripe: the
+      // Checkout Session `cs_…` and its client secret (assumed until backend
+      // 1.4 fixes the Stripe answer).
       id: string;
       customerId: string | null;
+      clientSecret: string | null;
     }
   | { ok: false; status: number; message: string | null };
 
@@ -63,6 +66,10 @@ export async function createSubscription(
       id: results.id,
       customerId:
         typeof results.customer_id === "string" ? results.customer_id : null,
+      clientSecret:
+        typeof results.client_secret === "string"
+          ? results.client_secret
+          : null,
     };
   }
   return { ok: false, status, message: firstError(responseBody) };
