@@ -6,6 +6,24 @@
   "type": "module",
   "main": "./dist/v3/apphud.js",
   "module": "./dist/v3/apphud.esm.js",
+  "exports": {
+    ".": {
+      "import": "./dist/v3/apphud.esm.js",
+      "default": "./dist/v3/apphud.js"
+    },
+    "./renderer": {
+      "types": "./dist/v3/types/entries/renderer.d.ts",
+      "default": "./dist/v3/apphud-renderer.esm.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "renderer": [
+        "./dist/v3/types/entries/renderer.d.ts"
+      ]
+    }
+  },
   "scripts": {
     "build": "rollup -c && tsc -p tsconfig.renderer.json && node scripts/check-bundles.mjs",
     "test": "vitest run",
@@ -27,7 +45,9 @@
   },
   "files": [
     "dist/v3/apphud.js",
-    "dist/v3/apphud.esm.js"
+    "dist/v3/apphud.esm.js",
+    "dist/v3/apphud-renderer.esm.js",
+    "dist/v3/types"
   ],
   "devDependencies": {
     "@eslint/js": "^9.8.0",
