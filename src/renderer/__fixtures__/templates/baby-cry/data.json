@@ -47,10 +47,6 @@
     "field": "#FFFFFF",
     "field_border": "#D0D5DD"
   },
-  "dismiss_button": {
-    "icon": "@close",
-    "url": "https://pay.apphud.com/close"
-  },
   "header": {
     "app_icon": "https://framerusercontent.com/images/FaKbf5ahFHSx51du4GFfGSiJKow.jpg?width=128&height=128",
     "brand": {
@@ -92,22 +88,6 @@
       "en": "Something went wrong. Please try again.",
       "ru": "Что-то пошло не так. Попробуйте ещё раз."
     }
-  },
-  "success": {
-    "icon": "@check",
-    "title": {
-      "en": "You're all set!",
-      "ru": "Всё готово!"
-    },
-    "text": {
-      "en": "Your plan is active. Go back to the app to meet AYA.",
-      "ru": "План активен. Возвращайтесь в приложение — AYA уже ждёт."
-    },
-    "button": {
-      "en": "Open the app",
-      "ru": "Открыть приложение"
-    },
-    "button_url": "https://pay.apphud.com/close"
   },
   "information": {
     "legal": {
@@ -173,20 +153,10 @@
   },
   "payment": {
     "apple_pay_type": "plain",
-    "apple_pay_style": "black",
-    "card_title": {
-      "en": "Card Payment",
-      "ru": "Оплата картой"
-    },
     "card_button": {
       "en": "Pay Now",
       "ru": "Оплатить"
     },
-    "wallet_title": {
-      "en": "Apple Pay",
-      "ru": "Apple Pay"
-    },
-    "wallet_icon": "@apple",
     "number_placeholder": {
       "en": "Card number",
       "ru": "Номер карты"
@@ -202,17 +172,28 @@
     "processing": {
       "en": "Processing…",
       "ru": "Оплачиваем…"
+    },
+    "divider": {
+      "en": "or",
+      "ru": "или"
     }
   },
-  "card_brands": [
-    {
-      "brand": "@visa"
+  "success_page": {
+    "title": {
+      "en": "You're all set!",
+      "ru": "Всё готово!"
     },
-    {
-      "brand": "@mastercard"
+    "subtitle": {
+      "en": "Your subscription is active.",
+      "ru": "Подписка активна."
     },
-    {
-      "brand": "@amex"
+    "button": {
+      "en": "Back to the app",
+      "ru": "Вернуться в приложение"
+    },
+    "no_return_text": {
+      "en": "Go back to the app to start using your subscription.",
+      "ru": "Вернитесь в приложение, чтобы начать пользоваться подпиской."
     }
-  ]
+  }
 }

@@ -164,6 +164,7 @@ export const css = `
 .wp.is-card-open .wp__method--card,
 .wp.has-wallet:not(.is-card-open) .wp__method--wallet { border-color: var(--wp-accent); background: var(--wp-accent-soft); }
 
+.wp__pay { display: flex; flex-direction: column; gap: 12px; }
 .wp__pane { display: none; flex-direction: column; gap: 12px; }
 .wp.is-card-open .wp__pane--card,
 .wp.has-wallet:not(.is-card-open) .wp__pane--wallet { display: flex; animation: wp-rise 0.35s ease both; }

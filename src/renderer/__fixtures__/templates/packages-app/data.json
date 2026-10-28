@@ -116,22 +116,6 @@
       "ru": "Что-то пошло не так. Попробуйте ещё раз."
     }
   },
-  "success": {
-    "image": "https://framerusercontent.com/images/Omqgwjugy4PvYXMlCorLnyntUeE.png",
-    "title": {
-      "en": "Welcome to Packy PRO!",
-      "ru": "Добро пожаловать в Packy PRO!"
-    },
-    "text": {
-      "en": "Your free trial has started. Go back to the app and track without limits.",
-      "ru": "Бесплатный период начался. Возвращайтесь в приложение и отслеживайте без ограничений."
-    },
-    "button": {
-      "en": "Open Packy",
-      "ru": "Открыть Packy"
-    },
-    "button_url": "https://pay.apphud.com/close"
-  },
   "information": {
     "legal": {
       "en": "By continuing you agree that your subscription renews automatically at the price shown until you cancel in the app settings.",
@@ -223,21 +207,6 @@
       "ru": "Способ оплаты"
     },
     "apple_pay_type": "subscribe",
-    "apple_pay_style": "black",
-    "card_icon": "@card",
-    "card_title": {
-      "en": "Card",
-      "ru": "Карта"
-    },
-    "card_details": {
-      "en": "Card details",
-      "ru": "Данные карты"
-    },
-    "wallet_title": {
-      "en": "Apple Pay",
-      "ru": "Apple Pay"
-    },
-    "wallet_icon": "@apple",
     "number_placeholder": {
       "en": "Card number",
       "ru": "Номер карты"
@@ -253,19 +222,12 @@
     "processing": {
       "en": "Processing…",
       "ru": "Оплачиваем…"
+    },
+    "divider": {
+      "en": "or",
+      "ru": "или"
     }
   },
-  "card_brands": [
-    {
-      "brand": "@visa"
-    },
-    {
-      "brand": "@mastercard"
-    },
-    {
-      "brand": "@amex"
-    }
-  ],
   "reviews": [
     {
       "title": {
@@ -316,5 +278,23 @@
       "ru": "Нас любят 1M+ пользователей"
     },
     "star_icon": "@star_fill"
+  },
+  "success_page": {
+    "title": {
+      "en": "Welcome to Packy PRO!",
+      "ru": "Добро пожаловать в Packy PRO!"
+    },
+    "subtitle": {
+      "en": "Your subscription is active.",
+      "ru": "Подписка активна."
+    },
+    "button": {
+      "en": "Back to the app",
+      "ru": "Вернуться в приложение"
+    },
+    "no_return_text": {
+      "en": "Go back to the app to start using your subscription.",
+      "ru": "Вернитесь в приложение, чтобы начать пользоваться подпиской."
+    }
   }
 }

@@ -243,19 +243,9 @@
   },
   "payment": {
     "apple_pay_type": "subscribe",
-    "apple_pay_style": "auto",
-    "card_icon": "@card",
     "divider": {
       "en": "or",
       "ru": "или"
-    },
-    "other_methods": {
-      "en": "Pay with card",
-      "ru": "Оплатить картой"
-    },
-    "card_title": {
-      "en": "Card details",
-      "ru": "Данные карты"
     },
     "number_placeholder": {
       "en": "Card number",
@@ -288,9 +278,8 @@
       "ru": "Вернуться в приложение"
     },
     "no_return_text": {
-      "en": "",
-      "ru": ""
-    },
-    "css": ""
+      "en": "Go back to the app to start using your subscription.",
+      "ru": "Вернитесь в приложение, чтобы начать пользоваться подпиской."
+    }
   }
 }

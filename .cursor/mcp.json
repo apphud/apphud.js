@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "apphud-mcp": {
+      "url": "https://mcp.apphud.com/mcp",
+      "auth": {
+        "scopes": ["mcp:read", "mcp:write", "mcp:admin"]
+      }
+    }
+  }
+}

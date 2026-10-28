@@ -18,82 +18,6 @@
     ]
   },
   {
-    "name": "Close button",
-    "slug": "dismiss_button",
-    "fields": [
-      {
-        "id": "icon",
-        "type": "select",
-        "label": "Icon",
-        "default": "@close",
-        "options": [
-          {
-            "name": "Close",
-            "value": "@close"
-          },
-          {
-            "name": "Chart",
-            "value": "@chart"
-          },
-          {
-            "name": "Flask",
-            "value": "@flask"
-          },
-          {
-            "name": "Link",
-            "value": "@link"
-          },
-          {
-            "name": "Chat",
-            "value": "@chat"
-          },
-          {
-            "name": "Lock",
-            "value": "@lock"
-          },
-          {
-            "name": "Check",
-            "value": "@check"
-          },
-          {
-            "name": "Card",
-            "value": "@card"
-          },
-          {
-            "name": "Alert",
-            "value": "@alert"
-          },
-          {
-            "name": "Star",
-            "value": "@star"
-          },
-          {
-            "name": "Star fill",
-            "value": "@star_fill"
-          },
-          {
-            "name": "Bolt",
-            "value": "@bolt"
-          },
-          {
-            "name": "Shield",
-            "value": "@shield"
-          },
-          {
-            "name": "Apple",
-            "value": "@apple"
-          }
-        ]
-      },
-      {
-        "id": "url",
-        "type": "url",
-        "label": "URL",
-        "default": "https://pay.apphud.com/close"
-      }
-    ]
-  },
-  {
     "name": "Title",
     "slug": "title",
     "fields": [
@@ -245,110 +169,16 @@
         ]
       },
       {
-        "id": "apple_pay_style",
-        "type": "select",
-        "label": "Apple pay style",
-        "default": "black",
-        "options": [
-          {
-            "name": "Auto",
-            "value": "auto"
-          },
-          {
-            "name": "Black",
-            "value": "black"
-          },
-          {
-            "name": "White",
-            "value": "white"
-          },
-          {
-            "name": "White outline",
-            "value": "white-outline"
-          }
-        ]
-      },
-      {
-        "id": "card_title",
+        "id": "divider",
         "type": "text",
-        "label": "Card title",
-        "default": "Card Payment"
+        "label": "Divider",
+        "default": "or"
       },
       {
         "id": "card_button",
         "type": "text",
         "label": "Card button",
         "default": "Pay Now"
-      },
-      {
-        "id": "wallet_title",
-        "type": "text",
-        "label": "Wallet title",
-        "default": "Apple Pay"
-      },
-      {
-        "id": "wallet_icon",
-        "type": "select",
-        "label": "Wallet icon",
-        "default": "@apple",
-        "options": [
-          {
-            "name": "Close",
-            "value": "@close"
-          },
-          {
-            "name": "Chart",
-            "value": "@chart"
-          },
-          {
-            "name": "Flask",
-            "value": "@flask"
-          },
-          {
-            "name": "Link",
-            "value": "@link"
-          },
-          {
-            "name": "Chat",
-            "value": "@chat"
-          },
-          {
-            "name": "Lock",
-            "value": "@lock"
-          },
-          {
-            "name": "Check",
-            "value": "@check"
-          },
-          {
-            "name": "Card",
-            "value": "@card"
-          },
-          {
-            "name": "Alert",
-            "value": "@alert"
-          },
-          {
-            "name": "Star",
-            "value": "@star"
-          },
-          {
-            "name": "Star fill",
-            "value": "@star_fill"
-          },
-          {
-            "name": "Bolt",
-            "value": "@bolt"
-          },
-          {
-            "name": "Shield",
-            "value": "@shield"
-          },
-          {
-            "name": "Apple",
-            "value": "@apple"
-          }
-        ]
       },
       {
         "id": "number_placeholder",
@@ -373,37 +203,6 @@
         "type": "text",
         "label": "Processing",
         "default": "Processing…"
-      }
-    ]
-  },
-  {
-    "name": "Card brands",
-    "slug": "card_brands",
-    "collection": true,
-    "fields": [
-      {
-        "id": "brand",
-        "type": "select",
-        "label": "Brand",
-        "default": "@visa",
-        "options": [
-          {
-            "name": "Visa",
-            "value": "@visa"
-          },
-          {
-            "name": "Mastercard",
-            "value": "@mastercard"
-          },
-          {
-            "name": "Amex",
-            "value": "@amex"
-          },
-          {
-            "name": "Card generic",
-            "value": "@card_generic"
-          }
-        ]
       }
     ]
   },
@@ -604,100 +403,6 @@
         "type": "text",
         "label": "Generic",
         "default": "Something went wrong. Please try again."
-      }
-    ]
-  },
-  {
-    "name": "Success screen",
-    "slug": "success",
-    "fields": [
-      {
-        "id": "icon",
-        "type": "select",
-        "label": "Icon",
-        "default": "@check",
-        "options": [
-          {
-            "name": "Close",
-            "value": "@close"
-          },
-          {
-            "name": "Chart",
-            "value": "@chart"
-          },
-          {
-            "name": "Flask",
-            "value": "@flask"
-          },
-          {
-            "name": "Link",
-            "value": "@link"
-          },
-          {
-            "name": "Chat",
-            "value": "@chat"
-          },
-          {
-            "name": "Lock",
-            "value": "@lock"
-          },
-          {
-            "name": "Check",
-            "value": "@check"
-          },
-          {
-            "name": "Card",
-            "value": "@card"
-          },
-          {
-            "name": "Alert",
-            "value": "@alert"
-          },
-          {
-            "name": "Star",
-            "value": "@star"
-          },
-          {
-            "name": "Star fill",
-            "value": "@star_fill"
-          },
-          {
-            "name": "Bolt",
-            "value": "@bolt"
-          },
-          {
-            "name": "Shield",
-            "value": "@shield"
-          },
-          {
-            "name": "Apple",
-            "value": "@apple"
-          }
-        ]
-      },
-      {
-        "id": "title",
-        "type": "text",
-        "label": "Title",
-        "default": "You're all set!"
-      },
-      {
-        "id": "text",
-        "type": "textarea",
-        "label": "Text",
-        "default": "Your plan is active. Go back to the app to meet AYA."
-      },
-      {
-        "id": "button",
-        "type": "text",
-        "label": "Button",
-        "default": "Open the app"
-      },
-      {
-        "id": "button_url",
-        "type": "url",
-        "label": "Button URL",
-        "default": "https://pay.apphud.com/close"
       }
     ]
   },
@@ -978,6 +683,36 @@
         "type": "color",
         "label": "Field border",
         "default": "#3A3448"
+      }
+    ]
+  },
+  {
+    "name": "Success page",
+    "slug": "success_page",
+    "fields": [
+      {
+        "id": "title",
+        "type": "text",
+        "label": "Title",
+        "default": "Payment successful"
+      },
+      {
+        "id": "subtitle",
+        "type": "textarea",
+        "label": "Subtitle",
+        "default": "Your subscription is active."
+      },
+      {
+        "id": "button",
+        "type": "text",
+        "label": "Return button",
+        "default": "Return to the app"
+      },
+      {
+        "id": "no_return_text",
+        "type": "textarea",
+        "label": "Text without a return link",
+        "default": "Go back to the app to start using your subscription."
       }
     ]
   }
