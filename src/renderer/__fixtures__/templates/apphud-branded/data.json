@@ -280,6 +280,7 @@
     "no_return_text": {
       "en": "Go back to the app to start using your subscription.",
       "ru": "Вернитесь в приложение, чтобы начать пользоваться подпиской."
-    }
+    },
+    "css": ""
   }
 }

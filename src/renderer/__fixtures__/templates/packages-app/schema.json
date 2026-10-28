@@ -990,6 +990,12 @@
         "type": "textarea",
         "label": "Text without a return link",
         "default": "Go back to the app to start using your subscription."
+      },
+      {
+        "id": "css",
+        "type": "code",
+        "label": "Custom CSS",
+        "default": ""
       }
     ]
   }
