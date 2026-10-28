@@ -495,6 +495,10 @@ describe("createWebPaywall checkout", () => {
       returnUrl: null,
     });
     await paywall.ready;
+    // the fixture has its own success_page: drop it to get the defaults
+    paywall.updateData((draft) => {
+      delete draft.success_page;
+    });
     paywall.preview("success");
     const root = rootOf(shadow);
 
