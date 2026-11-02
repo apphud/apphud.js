@@ -110,14 +110,13 @@ describe("Paddle on the hosted page", () => {
     await flush();
 
     expect(page.post).toHaveBeenCalledWith(
-      "/v1/payment_providers/prov-paddle/subscriptions",
+      "/v2/payment_providers/prov-paddle/checkout",
       {
         user_id: "cust-1",
         paywall_id: "pw",
         bundle_id: "b-paddle",
         placement_id: "pl",
         variation_id: "var",
-        environment: "sandbox",
       },
     );
     expect(page.paddle.Checkout.open).toHaveBeenCalledWith(
@@ -220,6 +219,25 @@ describe("Paddle on the hosted page", () => {
     expect(page.paywall.state.error).toBe("generic");
     expect(page.cta().style.display).toBe("");
     expect(page.events.map(([name]) => name)).not.toContain("payment_error");
+    page.paywall.destroy();
+  });
+
+  it("does not open a transaction of another environment", async () => {
+    const page = setup({
+      status: 200,
+      body: {
+        data: { results: { id: "txn_1", environment: "production" } },
+      },
+    });
+    await page.paywall.ready;
+    page.cta().click();
+    await flush();
+
+    expect(page.paddle.Checkout.open).not.toHaveBeenCalled();
+    expect(page.paywall.state.error).toBe("reload");
+    expect(page.root().querySelector("#wp-error-text")?.textContent).toBe(
+      "Payment settings have changed. Reload the page.",
+    );
     page.paywall.destroy();
   });
 });

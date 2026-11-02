@@ -11,6 +11,10 @@ const DEFAULTS: Record<string, Record<string, string>> = {
     en: "Enter a valid email.",
     ru: "Введите корректный email.",
   },
+  "errors.reload": {
+    en: "Payment settings have changed. Reload the page.",
+    ru: "Настройки оплаты изменились. Перезагрузите страницу.",
+  },
 };
 
 export function checkoutText(ctx: CheckoutContext, path: string): string {

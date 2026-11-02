@@ -56,7 +56,16 @@ describe("parsePayload", () => {
         android: "apphudtestapp://ddd.aphd.cc/_apphud/return",
       },
       successUrl: null,
+      debug: null,
     });
+  });
+
+  it("takes debug from the page URL, as is", () => {
+    expect(parsePayload(full, "?apphud_user_id=u&debug=true").debug).toBe(
+      "true",
+    );
+    expect(parsePayload(full, "?debug=1").debug).toBe("1");
+    expect(parsePayload({ ...full, debug: "true" }).debug).toBeNull();
   });
 
   it("reads a preview: no customer, no providers, production", () => {

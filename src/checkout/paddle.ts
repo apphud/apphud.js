@@ -13,7 +13,7 @@ import type {
 import type { ApiClient } from "./api";
 import type { PagePayload, PageProvider } from "./payload";
 import type { CompletedPayment } from "./purchase";
-import { createSubscription } from "./subscriptions";
+import { createSubscription, refusal } from "./subscriptions";
 
 // Paddle on the hosted page (apphud-js-plan.md п. 10). The template's pay
 // button creates the transaction on the new contract and opens Paddle's inline
@@ -135,16 +135,15 @@ export function createPaddleCheckout(
     });
     const { instance, subscription } = opened;
     if (!ctx || !frame) return;
-    if (!subscription.ok || !instance) {
+    if (!subscription.ok) {
+      ctx.fail(refusal(ctx, "paddle", subscription));
+      return;
+    }
+    if (!instance) {
       ctx.fail({
         error: "generic",
         provider: "paddle",
-        code: subscription.ok
-          ? "paddle_unavailable"
-          : `create_${subscription.status}`,
-        detail: subscription.ok
-          ? undefined
-          : (subscription.message ?? undefined),
+        code: "paddle_unavailable",
       });
       return;
     }
@@ -153,6 +152,7 @@ export function createPaddleCheckout(
     frame.classList.add(FRAME_CLASS);
     instance.Checkout.open({
       transactionId: subscription.id,
+      // no Paddle customer yet: Paddle asks for the email and makes one
       ...(subscription.customerId && {
         customer: { id: subscription.customerId },
       }),

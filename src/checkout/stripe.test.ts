@@ -27,29 +27,37 @@ const data = {
   payment: { processing: { en: "Processing…" } },
 };
 
-const pagePayload = (overrides: Record<string, unknown> = {}) =>
-  parsePayload({
-    screen: { html, css: "", data },
-    customer: { id: "cust-1", locale: "en", environment: "sandbox" },
-    email_required: false,
-    environment: "sandbox",
-    api_key: "k",
-    api_host: "https://api.example.com",
-    paywall_id: "pw",
-    placement_id: "pl",
-    variation_id: "var",
-    providers: [
-      { id: "prov-stripe", kind: "stripe", identifier: "acct_1", token: "pk" },
-      { id: "prov-paddle", kind: "paddle", identifier: "", token: "test_tok" },
-    ],
-    payment_kinds: { "b-stripe": ["stripe"], "b-both": ["paddle", "stripe"] },
-    ...overrides,
-  });
+const rawPayload = (overrides: Record<string, unknown> = {}) => ({
+  screen: { html, css: "", data },
+  customer: { id: "cust-1", locale: "en", environment: "sandbox" },
+  email_required: false,
+  environment: "sandbox",
+  api_key: "k",
+  api_host: "https://api.example.com",
+  paywall_id: "pw",
+  placement_id: "pl",
+  variation_id: "var",
+  providers: [
+    { id: "prov-stripe", kind: "stripe", identifier: "acct_1", token: "pk" },
+    { id: "prov-paddle", kind: "paddle", identifier: "", token: "test_tok" },
+  ],
+  payment_kinds: { "b-stripe": ["stripe"], "b-both": ["paddle", "stripe"] },
+  ...overrides,
+});
 
-const created: ApiResponse = {
+const pagePayload = (overrides: Record<string, unknown> = {}) =>
+  parsePayload(rawPayload(overrides));
+
+const withResults = (results: Record<string, unknown>): ApiResponse => ({
   status: 200,
-  body: { data: { results: { id: "cs_1", client_secret: "cs_1_secret" } } },
-};
+  body: {
+    data: {
+      results: { id: "cs_1", client_secret: "cs_1_secret", ...results },
+    },
+  },
+});
+
+const created = withResults({});
 
 const flush = async () => {
   for (let i = 0; i < 10; i++) await Promise.resolve();
@@ -176,14 +184,13 @@ describe("Stripe on the hosted page", () => {
       locale: "en",
     });
     expect(page.post).toHaveBeenCalledWith(
-      "/v1/payment_providers/prov-stripe/subscriptions",
+      "/v2/payment_providers/prov-stripe/checkout",
       {
         user_id: "cust-1",
         paywall_id: "pw",
         bundle_id: "b-stripe",
         placement_id: "pl",
         variation_id: "var",
-        environment: "sandbox",
       },
     );
     expect(page.stripe.initCheckoutElementsSdk).toHaveBeenCalledWith(
@@ -303,8 +310,8 @@ describe("Stripe on the hosted page", () => {
     page.paywall.destroy();
   });
 
-  it("asks for the email when the store requires it", async () => {
-    const page = setup([], pagePayload({ email_required: true }));
+  it("asks for the email when the session requires it", async () => {
+    const page = setup([withResults({ email_required: true })]);
     await page.paywall.ready;
     await flush();
     const email = page
@@ -312,6 +319,7 @@ describe("Stripe on the hosted page", () => {
       .querySelector<HTMLInputElement>(
         ".aph-stripe__email",
       ) as HTMLInputElement;
+    expect(email.hidden).toBe(false);
     expect(email.placeholder).toBe("Email");
     page.handlers.card.change({ complete: true });
 
@@ -334,6 +342,70 @@ describe("Stripe on the hosted page", () => {
     page.paywall.destroy();
   });
 
+  it("hides the email when the Stripe customer already has one", async () => {
+    const page = setup(
+      [withResults({ email_required: false })],
+      pagePayload({ email_required: true }),
+    );
+    await page.paywall.ready;
+    const email = page
+      .frame()
+      .querySelector<HTMLInputElement>(
+        ".aph-stripe__email",
+      ) as HTMLInputElement;
+    // the payload's guess until the session answers
+    expect(email.hidden).toBe(false);
+    await flush();
+    expect(email.hidden).toBe(true);
+
+    page.handlers.card.change({ complete: true });
+    page.cta().click();
+    await flush();
+    expect(page.actions.updateEmail).not.toHaveBeenCalled();
+    expect(page.actions.confirm).toHaveBeenCalled();
+    expect(page.paywall.state.status).toBe("success");
+    page.paywall.destroy();
+  });
+
+  it("falls back to the payload's email flag when the answer has none", async () => {
+    const page = setup([], pagePayload({ email_required: true }));
+    await page.paywall.ready;
+    await flush();
+    const email = page
+      .frame()
+      .querySelector<HTMLInputElement>(".aph-stripe__email");
+    expect(email?.hidden).toBe(false);
+    page.paywall.destroy();
+  });
+
+  it("never starts Stripe on a session of another environment", async () => {
+    const page = setup([withResults({ environment: "production" })]);
+    await page.paywall.ready;
+    await flush();
+    expect(page.stripe.initCheckoutElementsSdk).not.toHaveBeenCalled();
+    expect(page.paywall.state.error).toBe("reload");
+    expect(page.root().querySelector("#wp-error-text")?.textContent).toBe(
+      "Payment settings have changed. Reload the page.",
+    );
+    expect(page.events.map(([name]) => name)).not.toContain("payment_error");
+    page.paywall.destroy();
+  });
+
+  it("passes the page's debug flag on and lets the server decide", async () => {
+    const page = setup(
+      [withResults({ environment: "sandbox" })],
+      parsePayload(rawPayload(), "?apphud_user_id=cust-1&debug=true"),
+    );
+    await page.paywall.ready;
+    await flush();
+    expect(page.post).toHaveBeenCalledWith(
+      "/v2/payment_providers/prov-stripe/checkout",
+      expect.objectContaining({ debug: "true" }),
+    );
+    expect(page.stripe.initCheckoutElementsSdk).toHaveBeenCalled();
+    page.paywall.destroy();
+  });
+
   it("lets the buyer choose between Stripe and Paddle", async () => {
     const page = setup([], pagePayload(), 2);
     await page.paywall.ready;
@@ -353,7 +425,7 @@ describe("Stripe on the hosted page", () => {
     page.cta().click();
     await flush();
     expect(page.post).toHaveBeenLastCalledWith(
-      "/v1/payment_providers/prov-paddle/subscriptions",
+      "/v2/payment_providers/prov-paddle/checkout",
       expect.objectContaining({ bundle_id: "b-both" }),
     );
     expect(page.paddle.Checkout.open).toHaveBeenCalled();

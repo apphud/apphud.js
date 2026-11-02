@@ -36,9 +36,9 @@ const pageStyle = (doc: Document) => {
  * preview: no checkout and no events.
  */
 export function mount(el: HTMLElement, raw: unknown): MountedPage {
-  const payload = parsePayload(raw);
   const doc = el.ownerDocument;
   const view = doc.defaultView;
+  const payload = parsePayload(raw, view?.location.search);
   const api = payload.customer
     ? createApiClient({ apiHost: payload.apiHost, apiKey: payload.apiKey })
     : null;

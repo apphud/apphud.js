@@ -1,5 +1,5 @@
 // /pure: Stripe.js loads only when a plan sells through Stripe
-import { loadStripe as loadStripeJs } from "@stripe/stripe-js-dahlia/pure";
+import { loadStripe as loadStripeJs } from "@stripe/stripe-js-endive/pure";
 import type {
   Appearance,
   Stripe,
@@ -10,7 +10,7 @@ import type {
   StripeConstructorOptions,
   StripeElementLocale,
   StripeExpressCheckoutElementConfirmEvent,
-} from "@stripe/stripe-js-dahlia";
+} from "@stripe/stripe-js-endive";
 import type {
   CheckoutContext,
   PayResult,
@@ -20,7 +20,7 @@ import type {
 import type { ApiClient } from "./api";
 import type { PagePayload, PageProvider } from "./payload";
 import type { CompletedPayment } from "./purchase";
-import { createSubscription } from "./subscriptions";
+import { createSubscription, refusal } from "./subscriptions";
 import { checkoutText } from "./texts";
 
 // Stripe on the hosted page (apphud-js-plan.md п. 9). Each plan gets a Checkout
@@ -28,8 +28,8 @@ import { checkoutText } from "./texts";
 // Express Checkout Element (Apple Pay, Google Pay) and Payment Element fill the
 // slot. The template's pay button confirms the card, a wallet confirms itself;
 // the session id goes to sync. Link and PayPal stay hidden: they fail in
-// WebViews. Stripe.js is v9, the release train of the backend's API version
-// (2026-03-25.dahlia).
+// WebViews. Stripe.js is v10, the release train of the API version the backend
+// creates sessions with (2026-09-30.endive).
 
 export interface StripeCheckoutOptions {
   api: ApiClient;
@@ -47,6 +47,9 @@ export interface StripeCheckoutOptions {
 interface Session {
   sdk: StripeCheckoutElementsSdk;
   actions: StripeCheckoutLoadActionsSuccess;
+  // from the checkout answer, not the payload: the Stripe customer may already
+  // have an email from an earlier purchase
+  emailRequired: boolean;
 }
 
 type Prepared =
@@ -62,6 +65,7 @@ const STYLE = `
   background: var(--wp-field, transparent); color: var(--wp-text, inherit);
   font: inherit; font-size: 16px;
 }
+.aph-stripe__email[hidden] { display: none; }
 .aph-stripe__email::placeholder { color: var(--wp-text-tertiary, #888); }
 .aph-stripe__email.is-invalid { border-color: var(--wp-danger, #e5344f); }
 `;
@@ -89,7 +93,7 @@ export function createStripeCheckout(
     root: HTMLElement;
     express: HTMLElement;
     or: HTMLElement;
-    email: HTMLInputElement | null;
+    email: HTMLInputElement;
     card: HTMLElement;
   } | null = null;
   let listeners: AbortController | null = null;
@@ -157,8 +161,9 @@ export function createStripeCheckout(
         ensureStripe().catch(() => null),
         createSubscription(api, payload, provider, bundle),
       ]);
+      // a payment of another environment never reaches Stripe.js
       if (!created.ok) {
-        return failure(`create_${created.status}`, created.message);
+        return { ok: false, error: refusal(ctx, "stripe", created) };
       }
       if (!instance) {
         stripe = null;
@@ -173,7 +178,14 @@ export function createStripeCheckout(
       if (loaded.type === "error") {
         return failure("load_actions", loaded.error.message);
       }
-      return { ok: true, session: { sdk, actions: loaded.actions } };
+      return {
+        ok: true,
+        session: {
+          sdk,
+          actions: loaded.actions,
+          emailRequired: created.emailRequired,
+        },
+      };
     })().catch((error) => failure("stripe_error", String(error)));
     sessions.set(bundle, pending);
     // a plan that failed asks for a new session next time
@@ -218,8 +230,8 @@ export function createStripeCheckout(
   ): Promise<PayResult> {
     const prepared = await prepare(bundle);
     if (!prepared.ok) return prepared.error;
-    const { actions } = prepared.session;
-    if (payload.emailRequired) {
+    const { actions, emailRequired } = prepared.session;
+    if (emailRequired) {
       const updated = await actions.updateEmail(email);
       if (updated.type === "error") {
         return {
@@ -268,9 +280,17 @@ export function createStripeCheckout(
     box?.root.classList.remove("has-wallet");
   }
 
+  // Until a session answers, the page's flag guesses; the session decides.
+  function showEmail(required: boolean) {
+    if (!box) return;
+    box.email.hidden = !required;
+    if (!required) box.email.classList.remove("is-invalid");
+  }
+
   function attach(session: Session) {
     if (!box) return;
     shown = session;
+    showEmail(session.emailRequired);
     session.sdk.changeAppearance(appearance());
 
     const express = session.sdk.createExpressCheckoutElement(EXPRESS_OPTIONS);
@@ -318,9 +338,7 @@ export function createStripeCheckout(
   function renderTexts() {
     if (!ctx || !box) return;
     box.or.textContent = checkoutText(ctx, "payment.divider");
-    if (box.email) {
-      box.email.placeholder = checkoutText(ctx, "payment.email_placeholder");
-    }
+    box.email.placeholder = checkoutText(ctx, "payment.email_placeholder");
   }
 
   return {
@@ -344,25 +362,21 @@ export function createStripeCheckout(
       const express = el("div", "aph-stripe__express");
       const or = el("div", "aph-stripe__or");
       const card = el("div", "aph-stripe__card");
-      let email: HTMLInputElement | null = null;
-      root.append(express, or);
-      if (payload.emailRequired) {
-        email = el("input", "aph-stripe__email");
-        email.type = "email";
-        email.name = "email";
-        email.autocomplete = "email";
-        email.inputMode = "email";
-        email.addEventListener(
-          "input",
-          () => {
-            email?.classList.remove("is-invalid");
-            ctx?.clearError();
-          },
-          { signal: listeners.signal },
-        );
-        root.append(email);
-      }
-      root.append(card);
+      const email = el("input", "aph-stripe__email");
+      email.type = "email";
+      email.name = "email";
+      email.autocomplete = "email";
+      email.inputMode = "email";
+      email.hidden = !payload.emailRequired;
+      email.addEventListener(
+        "input",
+        () => {
+          email.classList.remove("is-invalid");
+          ctx?.clearError();
+        },
+        { signal: listeners.signal },
+      );
+      root.append(express, or, email, card);
       target.append(style, root);
       box = { root, express, or, email, card };
       renderTexts();
@@ -383,11 +397,11 @@ export function createStripeCheckout(
         void show(true);
         return;
       }
-      const email = box?.email?.value.trim() ?? "";
+      const email = box?.email.value.trim() ?? "";
       const emailError = checkoutText(ctx, "errors.email");
-      if (payload.emailRequired && !EMAIL.test(email)) {
-        box?.email?.classList.add("is-invalid");
-        box?.email?.focus();
+      if (shown.emailRequired && !EMAIL.test(email)) {
+        box?.email.classList.add("is-invalid");
+        box?.email.focus();
         ctx.fail({ error: "email", message: emailError });
         return;
       }

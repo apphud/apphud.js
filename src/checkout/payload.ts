@@ -42,6 +42,9 @@ export interface PagePayload {
   paymentKinds: Record<string, PaymentKind[]>;
   returnUrls: { ios: string; android: string } | null;
   successUrl: string | null;
+  // `debug` of the page's own URL, not of the backend payload: the checkout
+  // passes it on as is, and the server decides the environment.
+  debug: string | null;
 }
 
 export class PayloadError extends Error {}
@@ -110,7 +113,8 @@ const readReturnUrls = (value: unknown): PagePayload["returnUrls"] => {
   return ios && android ? { ios, android } : null;
 };
 
-export function parsePayload(raw: unknown): PagePayload {
+// `search` — the page URL's query, where `debug` comes from.
+export function parsePayload(raw: unknown, search = ""): PagePayload {
   const value = typeof raw === "string" ? (JSON.parse(raw) as unknown) : raw;
   if (!isObject(value)) throw new PayloadError("payload is not an object");
 
@@ -137,5 +141,6 @@ export function parsePayload(raw: unknown): PagePayload {
     paymentKinds: readPaymentKinds(value.payment_kinds),
     returnUrls: readReturnUrls(value.return_urls),
     successUrl: str(value.success_url),
+    debug: new URLSearchParams(search).get("debug"),
   };
 }
