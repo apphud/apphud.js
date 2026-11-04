@@ -29,6 +29,10 @@ import {
     resolveApplePayStatus,
 } from "./wallet"
 
+// Stripe.js loaded with the Apphud platform key and no apiVersion takes the platform account's default API
+// version. Pinned, so a change of that default does not move every payment form with it.
+const STRIPE_API_VERSION = "2019-11-05"
+
 const ELEMENT_IDS = {
     new: {
         form: "apphud-stripe-payment-form",
@@ -91,7 +95,7 @@ class StripeForm implements PaymentForm {
                 return;
             }
             
-            this.stripe = await loadStripe(this.provider.token, {stripeAccount: this.provider.identifier});
+            this.stripe = await loadStripe(this.provider.token, {stripeAccount: this.provider.identifier, apiVersion: STRIPE_API_VERSION});
         })
     }
 
@@ -636,7 +640,7 @@ class StripeForm implements PaymentForm {
             return false;
         }
 
-        this.stripe = await loadStripe(this.provider.token, {stripeAccount: this.provider.identifier});
+        this.stripe = await loadStripe(this.provider.token, {stripeAccount: this.provider.identifier, apiVersion: STRIPE_API_VERSION});
         return this.stripe !== null;
     }
 

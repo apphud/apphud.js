@@ -28,7 +28,9 @@
     "build": "rollup -c && tsc -p tsconfig.renderer.json && node scripts/check-bundles.mjs",
     "test": "vitest run",
     "lint": "eslint src",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "deploy": "bash scripts/deploy.sh",
+    "build_and_deploy": "npm run build && npm run deploy"
   },
   "keywords": [
     "apphud",
