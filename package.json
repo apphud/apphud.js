@@ -1,6 +1,6 @@
 {
   "name": "apphud.js",
-  "version": "2.5.6",
+  "version": "2.5.7",
   "homepage": "https://apphud.com",
   "description": "Apphud Web-to-Web SDK",
   "type": "module",
@@ -9,7 +9,9 @@
   "scripts": {
     "build": "rollup -c",
     "lint": "eslint src",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "deploy": "bash scripts/deploy.sh",
+    "build_and_deploy": "npm run build && npm run deploy"
   },
   "keywords": [
     "apphud",
