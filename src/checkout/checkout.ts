@@ -22,16 +22,6 @@ export interface PageCheckoutOptions {
   loadStripe?: StripeCheckoutOptions["loadStripe"];
 }
 
-// A preview (no customer) never pays: the slot stays empty and, with no
-// submit, the template's pay button stays hidden.
-export function createInertCheckout(): WebPaywallCheckout {
-  return {
-    mount() {},
-    setPlan() {},
-    unmount() {},
-  };
-}
-
 // Kinds the page can pay with, the first preferred when a plan sells through
 // both: Stripe shows the wallets and the card right in the paywall.
 const SUPPORTED: PaymentKind[] = ["stripe", "paddle"];

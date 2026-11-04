@@ -219,6 +219,43 @@ describe("hosted page", () => {
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("shows a preview the mock payment form, and its pay button starts nothing", async () => {
+    const el = host();
+    page = mount(el, payload({ customer: null, api_key: "k" }));
+    await page.paywall.ready;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const root = el.shadowRoot;
+
+    expect(root?.querySelector("[data-checkout] .aph-mock__fields")).not.toBeNull();
+    const cta = root?.querySelector<HTMLButtonElement>("#wp-cta");
+    expect(cta?.style.display).toBe("");
+
+    root
+      ?.querySelectorAll<HTMLInputElement>(".aph-mock input")
+      .forEach((input, index) => {
+        input.value = ["4242424242424242", "1230", "123"][index] ?? "";
+      });
+    cta?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(page.paywall.state.status).toBe("idle");
+    expect(page.paywall.state.error).toBeNull();
+    expect(root?.getElementById("wp-root")?.classList.contains("is-processing")).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("hides the page's scroll bar and leaves the page as it was on destroy", () => {
+    page = mount(host(), payload());
+    const style = document.querySelector("style[data-apphud-page]");
+
+    expect(style?.textContent).toContain("scrollbar-width: none");
+    expect(style?.textContent).toContain("::-webkit-scrollbar { display: none; }");
+
+    page.destroy();
+    page = null;
+    expect(document.querySelector("style[data-apphud-page]")).toBeNull();
+  });
 });
 
 describe("page API client", () => {

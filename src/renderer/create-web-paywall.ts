@@ -360,6 +360,7 @@ export function createWebPaywall(
         emit("wallet", { available, source: state.wallet });
       },
       sleep,
+      simulatePayments: options.simulatePayments ?? true,
     });
 
   const checkoutContext: CheckoutContext = {

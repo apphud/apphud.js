@@ -14,6 +14,8 @@ export interface MockCheckoutOptions {
   onWallet: (available: boolean) => void;
   // The renderer's sleep: cleared on destroy, so a pending payment never resolves.
   sleep: (ms: number) => Promise<void>;
+  // false: the pay buttons do nothing, not even a pretend payment.
+  simulatePayments: boolean;
 }
 
 export const MOCK_DECLINED_CARD = "4000000000000002";
@@ -191,7 +193,7 @@ export function createMockCheckout(
       wallet.addEventListener(
         "click",
         () => {
-          if (ctx && !ctx.busy()) {
+          if (options.simulatePayments && ctx && !ctx.busy()) {
             clearError();
             void ctx.pay("apple_pay", payWallet);
           }
@@ -279,7 +281,7 @@ export function createMockCheckout(
       /* the mock sells any plan */
     },
     submit() {
-      if (!ctx || ctx.busy()) return;
+      if (!options.simulatePayments || !ctx || ctx.busy()) return;
       clearError();
       const invalid = validate();
       if (invalid) {

@@ -81,6 +81,10 @@ export interface CreateWebPaywallOptions {
   // Mounted into the template's [data-checkout] slot. Without it the mock
   // checkout runs: the builder never charges.
   checkout?: WebPaywallCheckout;
+  // Mock checkout only. true (default): its pay buttons play a payment out
+  // (processing, then success or a decline). false: they do nothing, for the
+  // hosted page's preview, where the form shows and no payment starts.
+  simulatePayments?: boolean;
   // Return button of the success page, already with its query. null: no
   // return link, the page asks to go back to the app. Omitted (builder
   // preview): the button shows without a link.

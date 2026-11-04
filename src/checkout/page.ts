@@ -2,7 +2,7 @@ import { createWebPaywall } from "../renderer/create-web-paywall";
 import type { WebPaywall } from "../renderer/types";
 import { createApiClient } from "./api";
 import { showSandboxBanner } from "./banner";
-import { createInertCheckout, createPageCheckout } from "./checkout";
+import { createPageCheckout } from "./checkout";
 import { createPageEvents } from "./events";
 import { parsePayload, type PagePayload } from "./payload";
 import { createPurchaseCompleter, returnUrlFor } from "./purchase";
@@ -17,7 +17,11 @@ export interface MountedPage {
 const language = (locale: string | null | undefined) =>
   (locale || "en").split(/[-_]/)[0].toLowerCase() || "en";
 
-const PAGE_CSS = "html, body { margin: 0; padding: 0; }";
+// The page scrolls as on a phone, without a scroll bar: a desktop browser
+// (and the dashboard's preview frame) would draw one over the paywall.
+const PAGE_CSS = `html, body { margin: 0; padding: 0; }
+html { scrollbar-width: none; }
+html::-webkit-scrollbar { display: none; }`;
 
 const pageStyle = (doc: Document) => {
   let style = doc.querySelector<HTMLStyleElement>("style[data-apphud-page]");
@@ -33,7 +37,7 @@ const pageStyle = (doc: Document) => {
 /**
  * Renders the hosted web paywall from its page payload into `el` (a shadow root
  * keeps the template's CSS and the page apart). Without a customer it is a
- * preview: no checkout and no events.
+ * preview: a mock payment form whose buttons do nothing, and no events.
  */
 export function mount(el: HTMLElement, raw: unknown): MountedPage {
   const doc = el.ownerDocument;
@@ -56,7 +60,7 @@ export function mount(el: HTMLElement, raw: unknown): MountedPage {
           redirect: (url) => view?.location.replace(url),
         }),
       })
-    : createInertCheckout();
+    : undefined;
 
   const style = pageStyle(doc);
   doc.querySelector("[data-apphud-sandbox]")?.remove();
@@ -80,6 +84,8 @@ export function mount(el: HTMLElement, raw: unknown): MountedPage {
     defaultLocale: "en",
     hosted: true,
     checkout,
+    // a preview: the renderer's mock form, and no payment starts
+    simulatePayments: false,
     returnUrl,
     onEvent: (event, properties) => {
       if (event === "shown") events.track("paywall_shown");
