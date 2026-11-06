@@ -87,11 +87,14 @@ export interface PaymentProviderFormOptions {
      *
      * If the server rejects the metadata (422, code `invalid_metadata`), checkout stops: the SDK
      * does not switch to a fallback Stripe account, writes the reason to the console and emits
-     * `payment_failure` with `{ error, code: "invalid_metadata", message }`.
+     * `payment_failure` with `{ error, code: "invalid_metadata", message }`. The pay buttons
+     * of that form then ignore clicks.
      *
-     * The Stripe Customer is created when the form is shown and is reused by all forms
-     * on the page. Set `customer` before the first `paymentForm()` call: later changes
-     * do not update a customer that already exists.
+     * The Stripe Customer is requested when the form is shown and is reused by all forms
+     * on the page. Set `customer` before the first `paymentForm()` call: later changes on
+     * the same page are not sent. On a later page load the server merges `customer` into
+     * the existing Stripe Customer; keys that are no longer passed stay on it, so use the
+     * same key names in every session (Stripe allows at most 50 keys per object).
      *
      * @example
      * apphud.paymentForm({

@@ -36,10 +36,10 @@ class FormBuilder implements PaymentFormBuilder {
     private currentForms: Map<string, PaymentForm> = new Map();
     private sharedCustomer: CustomerSetup | null = null; // Shared across all forms for this provider
     private pendingCustomer: Promise<CustomerSetup | null> | null = null; // Track pending customer creation
-    // stripeMetadata.customer the shared customer was created with. Kept when the
-    // customer is cleared, so a fallback account gets the same metadata whichever
-    // form triggers the switch.
-    private sharedCustomerMetadata: Record<string, unknown> | undefined = undefined;
+    // stripeMetadata.customer the shared customer was created with; null until a
+    // customer is created. Kept when the customer is cleared, so a fallback account
+    // gets the same metadata (or none) whichever form triggers the switch.
+    private sharedCustomerMetadata: { metadata: Record<string, unknown> | undefined } | null = null;
 
     constructor(
         private provider: PaymentProvider,
@@ -236,9 +236,10 @@ class FormBuilder implements PaymentFormBuilder {
     }
 
     /**
-     * stripeMetadata.customer used to create the shared customer, if any
+     * stripeMetadata.customer used to create the shared customer.
+     * null when no customer was created yet; `{ metadata: undefined }` when it was created without one.
      */
-    public getSharedCustomerMetadata(): Record<string, unknown> | undefined {
+    public getSharedCustomerMetadata(): { metadata: Record<string, unknown> | undefined } | null {
         return this.sharedCustomerMetadata;
     }
 
@@ -246,7 +247,7 @@ class FormBuilder implements PaymentFormBuilder {
      * Remember stripeMetadata.customer used to create the shared customer
      */
     public setSharedCustomerMetadata(metadata: Record<string, unknown> | undefined): void {
-        this.sharedCustomerMetadata = metadata ? { ...metadata } : undefined;
+        this.sharedCustomerMetadata = { metadata: metadata ? { ...metadata } : undefined };
     }
 
     /**

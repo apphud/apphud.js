@@ -77,6 +77,10 @@ class StripeForm implements PaymentForm {
     private stripeCanMakePayment: boolean | null = null;
     private canMakePaymentPromise: Promise<boolean> | null = null;
     private isActive: boolean = true;
+    // Set when the server rejected stripeMetadata: the pay buttons stay bound
+    // (removing the submit handler would let the form submit natively), so they
+    // check this flag and do nothing.
+    private checkoutStopped: boolean = false;
     private formOptions: PaymentProviderFormOptions = {};
     private static readonly STRIPE_SUBMIT_TIMEOUT_MS = 15000;
 
@@ -274,6 +278,11 @@ class StripeForm implements PaymentForm {
 
         this.applePayButtonHandler = () => {
             if (!this.isActive) {
+                return
+            }
+
+            // Keep the invalid-metadata message on screen and do not open the sheet.
+            if (this.checkoutStopped) {
                 return
             }
 
@@ -680,8 +689,9 @@ class StripeForm implements PaymentForm {
      */
     private async recoverFromUnprocessableSubscription(): Promise<"recovered" | "stopped" | "failed"> {
         // Read before the switch: the shared customer is cleared on switch,
-        // its metadata is not.
-        const customerMetadata = this.formBuilder.getSharedCustomerMetadata() ?? this.formOptions.stripeMetadata?.customer;
+        // its metadata is not. A customer created without metadata stays without it.
+        const recorded = this.formBuilder.getSharedCustomerMetadata();
+        const customerMetadata = recorded ? recorded.metadata : this.formOptions.stripeMetadata?.customer;
 
         try {
             const nextProvider = this.formBuilder.switchToFallbackProvider();
@@ -739,6 +749,7 @@ class StripeForm implements PaymentForm {
      */
     private stopCheckoutOnInvalidMetadata(error: HttpError, request: "customer" | "subscription"): void {
         const message = invalidMetadataMessage(error);
+        this.checkoutStopped = true;
 
         console.error(`[Apphud] stripeMetadata.${request} was rejected by the server: ${message}`);
         logError(`Invalid Stripe metadata (${request}):`, message, true);
@@ -890,6 +901,14 @@ class StripeForm implements PaymentForm {
                 if (!this.isActive) {
                     event.complete('fail');
                     log('Apple Pay paymentmethod ignored: form was cancelled');
+                    return;
+                }
+
+                // The sheet was opened before stripeMetadata was rejected:
+                // the error is already shown and reported.
+                if (this.checkoutStopped) {
+                    event.complete('fail');
+                    log('Apple Pay paymentmethod ignored: checkout stopped on invalid metadata');
                     return;
                 }
 
@@ -1148,6 +1167,11 @@ class StripeForm implements PaymentForm {
         
         this.submitHandler = async (event) => {
             event.preventDefault()
+
+            if (this.checkoutStopped) {
+                return
+            }
+
             this.setButtonState("processing")
 
             const submitTimeout = window.setTimeout(() => {

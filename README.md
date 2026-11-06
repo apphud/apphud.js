@@ -207,7 +207,8 @@ Limits:
 **Rejected metadata.** If the server rejects the metadata (HTTP 422 with code `invalid_metadata`), checkout stops. The SDK does not switch to another Stripe account, because it would reject the same metadata. Instead it:
 - writes the reason to the console, for example `metadata: must have at most 40 keys`;
 - emits `payment_failure` with `{ error, code: "invalid_metadata", message }`;
-- shows the buyer "Payment could not be processed. Please contact support." and sets the button to the error state.
+- shows the buyer "Payment could not be processed. Please contact support." and sets the button to the error state;
+- ignores further clicks on the pay button and the Apple Pay button of that form.
 
 ```js
 apphud.on("payment_failure", ({ event }) => {
@@ -217,7 +218,7 @@ apphud.on("payment_failure", ({ event }) => {
 });
 ```
 
-**Limitation:** The Stripe Customer is created when the form is shown and is reused by all payment forms on the page. `stripeMetadata.customer` must be known before the first `paymentForm()` call. If you change it later, the customer that already exists is not updated. `stripeMetadata.subscription` is read when the subscription is created, so the latest value is used.
+**Limitation:** The SDK sends `stripeMetadata.customer` when the form is shown. On one page the Stripe Customer is requested once and reused by all payment forms, so `stripeMetadata.customer` must be known before the first `paymentForm()` call: later changes on the same page are not sent. On a later page load the SDK sends it again, and the server merges it into the existing Stripe Customer: changed values are updated, keys you no longer pass stay on the customer. Use the same key names in every session, because Stripe allows at most 50 keys per object; if a merge fails, the purchase continues and the customer keeps its old keys. `stripeMetadata.subscription` is read when the subscription is created, so the latest value is used.
 
 ---
 
