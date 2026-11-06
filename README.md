@@ -206,7 +206,8 @@ Limits (checked by the server):
 **Rejected metadata.** If the metadata breaks a limit, the server rejects it (HTTP 422 with code `invalid_metadata`) and checkout stops. The SDK does not switch to another Stripe account, because it would reject the same metadata. Instead it:
 - writes the reason to the console, for example `metadata: key is reserved: hash`;
 - emits `payment_failure` with `{ error, code: "invalid_metadata", message }`;
-- shows the buyer "Payment could not be processed. Please contact support." and sets the button to the error state;
+- shows the buyer "Payment could not be processed. Please contact support." and keeps this message on the form;
+- calls `buttonStateSetter("error")` if you passed one; otherwise disables the pay button of a card form;
 - ignores further clicks on the pay button and the Apple Pay button of that form.
 
 ```js

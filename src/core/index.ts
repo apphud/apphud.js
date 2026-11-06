@@ -39,7 +39,7 @@ import {
     CustomerSetup,
     Subscription,
 } from '../types'
-import { isInvalidMetadataError, isUnprocessableEntityError } from "./api/httpError";
+import { isUnprocessableEntityError } from "./api/httpError";
 
 import UserAgent from 'ua-parser-js'
 import FormBuilder from "./paymentForms/formBuilder";
@@ -1480,12 +1480,6 @@ export default class ApphudSDK implements Apphud {
             log('Subscription created', subscription);
             return subscription;
         } catch (error) {
-            if (isInvalidMetadataError(error)) {
-                // Another Stripe account would reject the same metadata: do not switch.
-                logError('Subscription rejected: invalid metadata:', error.message, true);
-                throw error;
-            }
-
             if (isUnprocessableEntityError(error)) {
                 logError('Subscription rejected (422), forgetting customer and switching provider:', error.message);
                 this.switchToFallbackProvider(provider);

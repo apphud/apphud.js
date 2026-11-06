@@ -183,6 +183,12 @@ class StripeForm implements PaymentForm {
     }
 
     private displayError(message: string): void {
+        // Keep the invalid-metadata message: late callbacks (Apple Pay sheet, timeouts)
+        // must not replace it once checkout is stopped.
+        if (this.checkoutStopped) {
+            return
+        }
+
         const ids: string[] = []
         if (this.elementIDs.error) {
             ids.push(this.elementIDs.error)
@@ -227,6 +233,10 @@ class StripeForm implements PaymentForm {
 
     private resetApplePayButtonState(delayMs = 0): void {
         const apply = () => {
+            // After invalid metadata the button stays in the error state: taps are ignored.
+            if (this.checkoutStopped) {
+                return
+            }
             if (this.buttonStateSetter) {
                 this.buttonStateSetter("ready")
             }
@@ -740,12 +750,13 @@ class StripeForm implements PaymentForm {
      */
     private stopCheckoutOnInvalidMetadata(error: HttpError, request: "customer" | "subscription"): void {
         const message = invalidMetadataMessage(error);
-        this.checkoutStopped = true;
 
         console.error(`[Apphud] stripeMetadata.${request} was rejected by the server: ${message}`);
         logError(`Invalid Stripe metadata (${request}):`, message, true);
 
         this.displayError(INVALID_METADATA_BUYER_MESSAGE);
+        // After the message: displayError and the button reset do nothing from now on.
+        this.checkoutStopped = true;
 
         if (this.buttonStateSetter) {
             this.buttonStateSetter("error");
@@ -1017,10 +1028,6 @@ class StripeForm implements PaymentForm {
 
         // Handle cancellation of Apple Pay sheet
         this.paymentRequest.on('cancel', () => {
-            // After invalid metadata the button stays in the error state: taps are ignored.
-            if (this.checkoutStopped) {
-                return
-            }
             this.resetApplePayButtonState()
         });
 
@@ -1123,7 +1130,8 @@ class StripeForm implements PaymentForm {
         // Event listener for change events
         paymentElement.on('change', (event: StripePaymentElementChangeEvent) => {
             const displayError = document.querySelector(`#${this.elementIDs.error}`)
-            if (displayError) {
+            // Keep the invalid-metadata message while the buyer edits the card.
+            if (displayError && !this.checkoutStopped) {
                 // Clear any previous error messages when the form is valid
                 if (event.complete) {
                     displayError.textContent = "";
