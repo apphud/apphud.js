@@ -252,6 +252,13 @@ class StripeForm implements PaymentForm {
 
     private applyApplePayAvailability(stripeCanMakePayment: boolean): void {
         this.stripeCanMakePayment = stripeCanMakePayment
+
+        // canMakePayment can resolve after checkout was stopped on invalid metadata:
+        // do not report Apple Pay as available, the button must stay in the error state.
+        if (this.checkoutStopped) {
+            return
+        }
+
         const resolved = resolveApplePayStatus(stripeCanMakePayment)
         this.applePayStatus = resolved.status
         this.emitApplePayStatus(resolved.status, resolved.deviceSupported)
@@ -938,12 +945,8 @@ class StripeForm implements PaymentForm {
                     // Reset button state on failure
                     if (this.buttonStateSetter) {
                         this.buttonStateSetter("error");
-                        // Return to ready state after a short delay
-                        setTimeout(() => {
-                            if (this.buttonStateSetter) {
-                                this.buttonStateSetter("ready");
-                            }
-                        }, 1500);
+                        // Return to ready state after a short delay (not once checkout is stopped)
+                        this.resetApplePayButtonState(1500);
                     }
                     return;
                 }
@@ -964,12 +967,8 @@ class StripeForm implements PaymentForm {
                         // Reset button state on 3DS verification failure
                         if (this.buttonStateSetter) {
                             this.buttonStateSetter("error");
-                            // Return to ready state after a short delay
-                            setTimeout(() => {
-                                if (this.buttonStateSetter) {
-                                    this.buttonStateSetter("ready");
-                                }
-                            }, 1500);
+                            // Return to ready state after a short delay (not once checkout is stopped)
+                            this.resetApplePayButtonState(1500);
                         }
                         
                         this.formBuilder.emit("payment_failure", {
@@ -1011,12 +1010,8 @@ class StripeForm implements PaymentForm {
                 // Reset button state on error
                 if (this.buttonStateSetter) {
                     this.buttonStateSetter("error");
-                    // Return to ready state after a short delay
-                    setTimeout(() => {
-                        if (this.buttonStateSetter) {
-                            this.buttonStateSetter("ready");
-                        }
-                    }, 1500);
+                    // Return to ready state after a short delay (not once checkout is stopped)
+                    this.resetApplePayButtonState(1500);
                 }
                 
                 this.formBuilder.emit("payment_failure", {
