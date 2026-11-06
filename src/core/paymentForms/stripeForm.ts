@@ -1,4 +1,4 @@
-import {documentReady, log, logError, getAmplitudeId, getValueByPath, trackFacebookPurchaseEvent} from "../../utils"
+import {documentReady, log, logError, getAmplitudeId, getValueByPath, trackFacebookPurchaseEvent, buildStripeMetadata} from "../../utils"
 import { extractCurrencyFromPrice } from "../../utils/currencies"
 import api from '../api'
 import {
@@ -7,7 +7,7 @@ import {
     PaymentProviderKey
 } from "../config/constants"
 import {CustomerSetup, PaymentForm, PaymentProviderFormOptions, Subscription, User, StripeSubscriptionOptions, ProductBundle, PaymentProvider} from "../../types"
-import { isUnprocessableEntityError } from "../api/httpError"
+import { HttpError, INVALID_METADATA_CODE, invalidMetadataMessage, isInvalidMetadataError, isUnprocessableEntityError } from "../api/httpError"
 import {
     loadStripe,
     Stripe,
@@ -32,6 +32,8 @@ import {
 // Stripe.js loaded with the Apphud platform key and no apiVersion takes the platform account's default API
 // version. Pinned, so a change of that default does not move every payment form with it.
 const STRIPE_API_VERSION = "2019-11-05"
+// Shown to the buyer when the server rejects stripeMetadata; the reason goes to the console.
+const INVALID_METADATA_BUYER_MESSAGE = "Payment could not be processed. Please contact support."
 
 const ELEMENT_IDS = {
     new: {
@@ -451,7 +453,17 @@ class StripeForm implements PaymentForm {
         }
         
         // Create customer
-        await this.createCustomer(options);
+        try {
+            await this.createCustomer(options);
+        } catch (error) {
+            if (isInvalidMetadataError(error)) {
+                if (this.isActive) {
+                    this.stopCheckoutOnInvalidMetadata(error, "customer");
+                }
+                return;
+            }
+            throw error;
+        }
         
         if (!this.isActive) return;
         
@@ -519,9 +531,7 @@ class StripeForm implements PaymentForm {
             payment_method_id: paymentMethodId,
             ...(this.subscriptionOptions?.trialDays && { trial_period_days: this.subscriptionOptions.trialDays }),
             ...(this.subscriptionOptions?.couponId && { discount_id: this.subscriptionOptions.couponId }),
-            metadata: {
-                ...(amplitudeId && { amplitude_id: amplitudeId })
-            },
+            metadata: buildStripeMetadata(this.formOptions.stripeMetadata?.subscription, amplitudeId),
         };
 
         try {
@@ -554,7 +564,15 @@ class StripeForm implements PaymentForm {
         }
     }
 
-    private async createCustomer(options: PaymentProviderFormOptions): Promise<void> {
+    /**
+     * @param options - form options
+     * @param customerMetadata - stripeMetadata.customer to send instead of the one in options
+     *   (the fallback account re-creates the customer with the metadata of the original one)
+     */
+    private async createCustomer(
+        options: PaymentProviderFormOptions,
+        customerMetadata: Record<string, unknown> | undefined = options.stripeMetadata?.customer
+    ): Promise<void> {
         if (options.applePay) {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
@@ -598,9 +616,7 @@ class StripeForm implements PaymentForm {
         
         const customerData: any = {
             user_id: this.user.id,
-            metadata: {
-                ...(amplitudeId && { amplitude_id: amplitudeId })
-            },
+            metadata: buildStripeMetadata(customerMetadata, amplitudeId),
         };
         
         // Only include payment_methods if Apple Pay is not enabled
@@ -611,8 +627,16 @@ class StripeForm implements PaymentForm {
         // Create the promise and store it in FormBuilder before starting the API call
         const creationPromise = api.createCustomer(this.provider.id, customerData);
         this.formBuilder.setPendingCustomer(creationPromise);
-        
-        this.customer = await creationPromise;
+
+        try {
+            this.customer = await creationPromise;
+        } catch (error) {
+            // Do not leave a rejected promise behind: the next form would reuse it.
+            if (this.formBuilder.getPendingCustomer() === creationPromise) {
+                this.formBuilder.setPendingCustomer(null);
+            }
+            throw error;
+        }
 
         if (!this.customer) {
             logError('Failed to create customer for user', this.user.id);
@@ -624,6 +648,7 @@ class StripeForm implements PaymentForm {
         // Save the customer to FormBuilder so other forms can reuse it
         // This also clears the pending promise
         this.formBuilder.setSharedCustomer(this.customer);
+        this.formBuilder.setSharedCustomerMetadata(customerMetadata);
         this.syncStripeClientSecretToBundle();
     }
 
@@ -649,13 +674,20 @@ class StripeForm implements PaymentForm {
      * wrong Stripe account and re-initialize checkout on a different account.
      * Does not replay the failed subscription request: the payment method is
      * bound to the original account, so the customer must authorize again.
+     * @returns "recovered" when checkout is ready on the fallback account,
+     *   "stopped" when checkout was stopped and the error is already shown,
+     *   "failed" when the caller should show its own error
      */
-    private async recoverFromUnprocessableSubscription(): Promise<boolean> {
+    private async recoverFromUnprocessableSubscription(): Promise<"recovered" | "stopped" | "failed"> {
+        // Read before the switch: the shared customer is cleared on switch,
+        // its metadata is not.
+        const customerMetadata = this.formBuilder.getSharedCustomerMetadata() ?? this.formOptions.stripeMetadata?.customer;
+
         try {
             const nextProvider = this.formBuilder.switchToFallbackProvider();
             if (!nextProvider) {
                 logError("Subscription 422: no alternative Stripe account to switch to", true);
-                return false;
+                return "failed";
             }
 
             log("Subscription 422: switching Stripe account", this.provider.id, "->", nextProvider.id, nextProvider.identifier);
@@ -665,13 +697,13 @@ class StripeForm implements PaymentForm {
 
             const loaded = await this.reloadStripe();
             if (!loaded) {
-                return false;
+                return "failed";
             }
 
-            await this.createCustomer(this.formOptions);
+            await this.createCustomer(this.formOptions, customerMetadata);
             if (!this.customer) {
                 logError("Failed to create customer on fallback Stripe account", true);
-                return false;
+                return "failed";
             }
 
             this.cleanupFormListeners();
@@ -689,11 +721,40 @@ class StripeForm implements PaymentForm {
                 this.setButtonState("ready");
             }
 
-            return true;
+            return "recovered";
         } catch (error) {
+            if (isInvalidMetadataError(error)) {
+                this.stopCheckoutOnInvalidMetadata(error, "customer");
+                return "stopped";
+            }
             logError("Failed to recover from unprocessable subscription:", error, true);
-            return false;
+            return "failed";
         }
+    }
+
+    /**
+     * The backend rejected stripeMetadata (422 invalid_metadata). Another Stripe
+     * account would reject it too, so stop checkout instead of switching accounts:
+     * give the reason to the integrator and a neutral message to the buyer.
+     */
+    private stopCheckoutOnInvalidMetadata(error: HttpError, request: "customer" | "subscription"): void {
+        const message = invalidMetadataMessage(error);
+
+        console.error(`[Apphud] stripeMetadata.${request} was rejected by the server: ${message}`);
+        logError(`Invalid Stripe metadata (${request}):`, message, true);
+
+        this.displayError(INVALID_METADATA_BUYER_MESSAGE);
+
+        if (this.buttonStateSetter) {
+            this.buttonStateSetter("error");
+        } else if (this.submit) {
+            this.setButtonState("error");
+        }
+
+        this.formBuilder.emit("payment_failure", {
+            paymentProvider: "stripe",
+            event: { error, code: INVALID_METADATA_CODE, message }
+        });
     }
     
     /**
@@ -906,11 +967,19 @@ class StripeForm implements PaymentForm {
             } catch (error) {
                 event.complete('fail');
 
+                if (isInvalidMetadataError(error)) {
+                    this.stopCheckoutOnInvalidMetadata(error, "subscription");
+                    return;
+                }
+
                 if (isUnprocessableEntityError(error)) {
                     logError("Apple Pay - Subscription 422, switching Stripe account:", error.message, true);
-                    const recovered = await this.recoverFromUnprocessableSubscription();
-                    if (recovered) {
+                    const recovery = await this.recoverFromUnprocessableSubscription();
+                    if (recovery === "recovered") {
                         log("Apple Pay ready on fallback Stripe account. Customer must authorize again.");
+                        return;
+                    }
+                    if (recovery === "stopped") {
                         return;
                     }
                 }
@@ -1151,13 +1220,23 @@ class StripeForm implements PaymentForm {
                     paymentMethodId
                 );
             } catch (error) {
+                if (isInvalidMetadataError(error)) {
+                    clearSubmitTimeout()
+                    this.stopCheckoutOnInvalidMetadata(error, "subscription")
+                    return
+                }
+
                 if (isUnprocessableEntityError(error)) {
                     logError("Subscription 422, switching Stripe account:", error.message)
-                    const recovered = await this.recoverFromUnprocessableSubscription();
-                    if (recovered) {
+                    const recovery = await this.recoverFromUnprocessableSubscription();
+                    if (recovery === "recovered") {
                         clearSubmitTimeout()
                         this.displayError("Please try again.")
                         this.setButtonState("ready")
+                        return
+                    }
+                    if (recovery === "stopped") {
+                        clearSubmitTimeout()
                         return
                     }
                 }

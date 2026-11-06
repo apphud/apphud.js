@@ -36,6 +36,10 @@ class FormBuilder implements PaymentFormBuilder {
     private currentForms: Map<string, PaymentForm> = new Map();
     private sharedCustomer: CustomerSetup | null = null; // Shared across all forms for this provider
     private pendingCustomer: Promise<CustomerSetup | null> | null = null; // Track pending customer creation
+    // stripeMetadata.customer the shared customer was created with. Kept when the
+    // customer is cleared, so a fallback account gets the same metadata whichever
+    // form triggers the switch.
+    private sharedCustomerMetadata: Record<string, unknown> | undefined = undefined;
 
     constructor(
         private provider: PaymentProvider,
@@ -229,6 +233,20 @@ class FormBuilder implements PaymentFormBuilder {
         this.sharedCustomer = customer;
         this.pendingCustomer = null; // Clear the pending promise once customer is set
         log("Shared customer set for provider:", this.provider.kind, customer.id);
+    }
+
+    /**
+     * stripeMetadata.customer used to create the shared customer, if any
+     */
+    public getSharedCustomerMetadata(): Record<string, unknown> | undefined {
+        return this.sharedCustomerMetadata;
+    }
+
+    /**
+     * Remember stripeMetadata.customer used to create the shared customer
+     */
+    public setSharedCustomerMetadata(metadata: Record<string, unknown> | undefined): void {
+        this.sharedCustomerMetadata = metadata ? { ...metadata } : undefined;
     }
 
     /**

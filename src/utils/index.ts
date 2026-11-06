@@ -286,6 +286,106 @@ export const getAmplitudeId = (): string | null => {
     return null;
 }
 
+// Metadata limits enforced by the Apphud backend (it answers 422 invalid_metadata
+// otherwise): at most 40 keys in total, amplitude_id included; key ≤ 40 chars
+// without square brackets; value ≤ 500 chars, amplitude_id ≤ 100 chars.
+const STRIPE_METADATA_MAX_KEYS = 40;
+const STRIPE_METADATA_MAX_KEY_LENGTH = 40;
+const STRIPE_METADATA_MAX_VALUE_LENGTH = 500;
+const AMPLITUDE_ID_KEY = "amplitude_id";
+const AMPLITUDE_ID_MAX_LENGTH = 100;
+const STRIPE_METADATA_RESERVED_PREFIX = "apphud_";
+
+const warnStripeMetadata = (message: string): void => {
+    console.warn(`[Apphud] stripeMetadata: ${message}`);
+}
+
+/**
+ * Normalize user-provided Stripe metadata.
+ * - numbers and booleans become strings; null, empty strings, nested objects and arrays are dropped
+ * - keys with the reserved `apphud_` prefix (any case) are dropped with a warning
+ * - keys and values that exceed the limits are dropped with a warning
+ */
+const normalizeStripeMetadata = (input: unknown): Record<string, string> => {
+    const result: Record<string, string> = {};
+
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+        return result;
+    }
+
+    for (const [key, rawValue] of Object.entries(input as Record<string, unknown>)) {
+        if (key.toLowerCase().startsWith(STRIPE_METADATA_RESERVED_PREFIX)) {
+            warnStripeMetadata(`key "${key}" is ignored, the "${STRIPE_METADATA_RESERVED_PREFIX}" prefix is reserved.`);
+            continue;
+        }
+
+        let value: string;
+        if (typeof rawValue === "string") {
+            value = rawValue;
+        } else if (typeof rawValue === "number") {
+            if (!Number.isFinite(rawValue)) continue;
+            value = String(rawValue);
+        } else if (typeof rawValue === "boolean") {
+            value = String(rawValue);
+        } else {
+            continue;
+        }
+
+        if (key.trim() === "" || value.trim() === "") {
+            continue;
+        }
+
+        if (key.length > STRIPE_METADATA_MAX_KEY_LENGTH || /[[\]]/.test(key)) {
+            warnStripeMetadata(`key "${key}" is ignored, keys must be at most ${STRIPE_METADATA_MAX_KEY_LENGTH} characters without square brackets.`);
+            continue;
+        }
+
+        const maxValueLength = key === AMPLITUDE_ID_KEY ? AMPLITUDE_ID_MAX_LENGTH : STRIPE_METADATA_MAX_VALUE_LENGTH;
+        if (value.length > maxValueLength) {
+            warnStripeMetadata(`key "${key}" is ignored, its value must be at most ${maxValueLength} characters.`);
+            continue;
+        }
+
+        result[key] = value;
+    }
+
+    return result;
+}
+
+/**
+ * Build the `metadata` object for POST /customers and POST /subscriptions.
+ * User keys come first, the SDK amplitude_id overrides a user key with the same name.
+ * The total is capped at the backend limit, so the request is not rejected with invalid_metadata.
+ * Without user metadata the result is `{}` or `{ amplitude_id }`, as before.
+ * @param userMetadata - `stripeMetadata.customer` / `stripeMetadata.subscription`
+ * @param amplitudeId - Amplitude device ID, if any
+ */
+export const buildStripeMetadata = (userMetadata: unknown, amplitudeId: string | null): Record<string, string> => {
+    let sdkAmplitudeId: string | null = amplitudeId || null;
+    if (sdkAmplitudeId && sdkAmplitudeId.length > AMPLITUDE_ID_MAX_LENGTH) {
+        log(`Amplitude device ID is longer than ${AMPLITUDE_ID_MAX_LENGTH} characters, not sending it`);
+        sdkAmplitudeId = null;
+    }
+
+    const user = normalizeStripeMetadata(userMetadata);
+    if (sdkAmplitudeId) {
+        delete user[AMPLITUDE_ID_KEY];
+    }
+
+    const userKeys = Object.keys(user);
+    const maxUserKeys = STRIPE_METADATA_MAX_KEYS - (sdkAmplitudeId ? 1 : 0);
+    if (userKeys.length > maxUserKeys) {
+        const dropped = userKeys.slice(maxUserKeys);
+        warnStripeMetadata(`at most ${maxUserKeys} keys are allowed, ignored: ${dropped.join(", ")}.`);
+        dropped.forEach(key => delete user[key]);
+    }
+
+    return {
+        ...user,
+        ...(sdkAmplitudeId && { [AMPLITUDE_ID_KEY]: sdkAmplitudeId }),
+    };
+}
+
 /**
  * Track Meta Pixel purchase or trial event
  * @param subscription - Subscription object containing amount and transaction_id

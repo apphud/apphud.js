@@ -69,7 +69,48 @@ export interface PaymentProviderFormOptions {
         showApplePayInPaymentElement?: boolean;
     };
     hideTerms?: boolean;
+    /**
+     * Custom metadata for Stripe objects. Use it to find the user from your own Stripe webhooks.
+     *
+     * - `customer` is sent to the Stripe Customer.
+     * - `subscription` is sent to the Stripe Subscription for a recurring price, or to the Invoice for a one-time price.
+     *
+     * Each object must be flat. Numbers and booleans are converted to strings.
+     * `null`, empty strings, nested objects and arrays are dropped silently.
+     * Keys that start with `apphud_` (any case) are reserved: they are dropped with a console warning.
+     *
+     * Limits: at most 40 keys per object (`amplitude_id`, added by the SDK, counts toward them);
+     * keys up to 40 characters, without `[` or `]`; values up to 500 characters
+     * (`amplitude_id` up to 100). The SDK drops keys that break these limits, with a console warning.
+     * Key names reserved by the server (such as `hash`, `to_hash`, `send`) are not checked
+     * by the SDK: the server rejects them.
+     *
+     * If the server rejects the metadata (422, code `invalid_metadata`), checkout stops: the SDK
+     * does not switch to a fallback Stripe account, writes the reason to the console and emits
+     * `payment_failure` with `{ error, code: "invalid_metadata", message }`.
+     *
+     * The Stripe Customer is created when the form is shown and is reused by all forms
+     * on the page. Set `customer` before the first `paymentForm()` call: later changes
+     * do not update a customer that already exists.
+     *
+     * @example
+     * apphud.paymentForm({
+     *   stripeMetadata: {
+     *     customer: { userId: "42" },
+     *     subscription: { user: "42", type: "self" },
+     *   },
+     * })
+     */
+    stripeMetadata?: {
+        customer?: StripeMetadataValues;
+        subscription?: StripeMetadataValues;
+    };
 }
+
+/**
+ * Flat metadata object. Numbers and booleans are converted to strings, empty values are dropped.
+ */
+export type StripeMetadataValues = Record<string, string | number | boolean | null | undefined>;
 
 export interface Country {
     name: string

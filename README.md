@@ -176,6 +176,48 @@ Use the same form markup (`apphud-payment-form`, `payment-element`, `submit`, `e
 - `paymentProvider`: Payment provider to use (`"stripe"` or `"paddle"`).
 - `successUrl`: Redirect URL after successful payment.
 - `failureUrl`: Redirect URL after payment failure.
+- `stripeMetadata` *(Stripe only)*: Custom metadata for Stripe objects, for example to find the user from your own Stripe webhooks.
+  - `customer`: sent to the Stripe Customer.
+  - `subscription`: sent to the Stripe Subscription for a recurring price, or to the Invoice for a one-time price.
+
+#### Stripe metadata
+
+```js
+apphud.paymentForm({
+  paymentProvider: "stripe",
+  stripeMetadata: {
+    customer: { userId: me.id },
+    subscription: { user: me.id, type: "self" },
+  },
+});
+```
+
+Rules:
+- Each object must be flat. Numbers and booleans are converted to strings.
+- `null`, empty strings, nested objects and arrays are dropped silently.
+- Keys that start with `apphud_` (in any case) are reserved. The SDK drops them and writes a warning to the console.
+
+Limits:
+- At most 40 keys per object. `amplitude_id`, which the SDK adds when Amplitude is on the page, counts toward the 40.
+- Keys: up to 40 characters, without `[` or `]`.
+- Values: up to 500 characters (`amplitude_id`: up to 100).
+- The SDK drops keys that break these limits and writes a warning to the console.
+- Some key names are reserved by the server (for example `hash`, `to_hash`, `send`). The SDK does not check them; the server rejects them.
+
+**Rejected metadata.** If the server rejects the metadata (HTTP 422 with code `invalid_metadata`), checkout stops. The SDK does not switch to another Stripe account, because it would reject the same metadata. Instead it:
+- writes the reason to the console, for example `metadata: must have at most 40 keys`;
+- emits `payment_failure` with `{ error, code: "invalid_metadata", message }`;
+- shows the buyer "Payment could not be processed. Please contact support." and sets the button to the error state.
+
+```js
+apphud.on("payment_failure", ({ event }) => {
+  if (event?.code === "invalid_metadata") {
+    console.error("Fix stripeMetadata:", event.message);
+  }
+});
+```
+
+**Limitation:** The Stripe Customer is created when the form is shown and is reused by all payment forms on the page. `stripeMetadata.customer` must be known before the first `paymentForm()` call. If you change it later, the customer that already exists is not updated. `stripeMetadata.subscription` is read when the subscription is created, so the latest value is used.
 
 ---
 
