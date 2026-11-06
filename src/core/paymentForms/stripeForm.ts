@@ -468,6 +468,11 @@ class StripeForm implements PaymentForm {
             if (isInvalidMetadataError(error)) {
                 if (this.isActive) {
                     this.stopCheckoutOnInvalidMetadata(error, "customer");
+                    // Bind the submit handler anyway: it ignores clicks once checkout is
+                    // stopped, and without it the <form> would submit natively.
+                    if (!options.applePay) {
+                        this.setupForm(options);
+                    }
                 }
                 return;
             }
@@ -573,15 +578,7 @@ class StripeForm implements PaymentForm {
         }
     }
 
-    /**
-     * @param options - form options
-     * @param customerMetadata - stripeMetadata.customer to send instead of the one in options
-     *   (the fallback account re-creates the customer with the metadata of the original one)
-     */
-    private async createCustomer(
-        options: PaymentProviderFormOptions,
-        customerMetadata: Record<string, unknown> | undefined = options.stripeMetadata?.customer
-    ): Promise<void> {
+    private async createCustomer(options: PaymentProviderFormOptions): Promise<void> {
         if (options.applePay) {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
@@ -625,7 +622,7 @@ class StripeForm implements PaymentForm {
         
         const customerData: any = {
             user_id: this.user.id,
-            metadata: buildStripeMetadata(customerMetadata, amplitudeId),
+            metadata: buildStripeMetadata(options.stripeMetadata?.customer, amplitudeId),
         };
         
         // Only include payment_methods if Apple Pay is not enabled
@@ -657,7 +654,6 @@ class StripeForm implements PaymentForm {
         // Save the customer to FormBuilder so other forms can reuse it
         // This also clears the pending promise
         this.formBuilder.setSharedCustomer(this.customer);
-        this.formBuilder.setSharedCustomerMetadata(customerMetadata);
         this.syncStripeClientSecretToBundle();
     }
 
@@ -688,11 +684,6 @@ class StripeForm implements PaymentForm {
      *   "failed" when the caller should show its own error
      */
     private async recoverFromUnprocessableSubscription(): Promise<"recovered" | "stopped" | "failed"> {
-        // Read before the switch: the shared customer is cleared on switch,
-        // its metadata is not. A customer created without metadata stays without it.
-        const recorded = this.formBuilder.getSharedCustomerMetadata();
-        const customerMetadata = recorded ? recorded.metadata : this.formOptions.stripeMetadata?.customer;
-
         try {
             const nextProvider = this.formBuilder.switchToFallbackProvider();
             if (!nextProvider) {
@@ -710,7 +701,7 @@ class StripeForm implements PaymentForm {
                 return "failed";
             }
 
-            await this.createCustomer(this.formOptions, customerMetadata);
+            await this.createCustomer(this.formOptions);
             if (!this.customer) {
                 logError("Failed to create customer on fallback Stripe account", true);
                 return "failed";
@@ -1026,6 +1017,10 @@ class StripeForm implements PaymentForm {
 
         // Handle cancellation of Apple Pay sheet
         this.paymentRequest.on('cancel', () => {
+            // After invalid metadata the button stays in the error state: taps are ignored.
+            if (this.checkoutStopped) {
+                return
+            }
             this.resetApplePayButtonState()
         });
 
