@@ -176,6 +176,49 @@ Use the same form markup (`apphud-payment-form`, `payment-element`, `submit`, `e
 - `paymentProvider`: Payment provider to use (`"stripe"` or `"paddle"`).
 - `successUrl`: Redirect URL after successful payment.
 - `failureUrl`: Redirect URL after payment failure.
+- `stripeMetadata` *(Stripe only)*: Custom metadata for Stripe objects, for example to find the user from your own Stripe webhooks.
+  - `customer`: sent to the Stripe Customer.
+  - `subscription`: sent to the Stripe Subscription for a recurring price, or to the Invoice for a one-time price.
+
+#### Stripe metadata
+
+```js
+apphud.paymentForm({
+  paymentProvider: "stripe",
+  stripeMetadata: {
+    customer: { userId: me.id },
+    subscription: { user: me.id, type: "self" },
+  },
+});
+```
+
+Rules:
+- Each object must be flat. Numbers and booleans are converted to strings.
+- `null`, `undefined`, `NaN`, `Infinity`, empty strings, nested objects and arrays are dropped silently.
+- Keys that start with `apphud_` are reserved. The SDK drops them and writes a warning to the console.
+- When Amplitude is on the page, the SDK adds `amplitude_id`. It replaces an `amplitude_id` key of your own.
+
+Limits (checked by the server):
+- At most 40 keys per object, `amplitude_id` included.
+- Keys: 1 to 40 characters, without `[` or `]`. Some key names are reserved (for example `hash`, `to_hash`, `send`).
+- Values: up to 500 characters (`amplitude_id`: up to 100).
+
+**Rejected metadata.** If the metadata breaks a limit, the server rejects it (HTTP 422 with code `invalid_metadata`) and checkout stops. The SDK does not switch to another Stripe account, because it would reject the same metadata. Instead it:
+- writes the reason to the console, for example `metadata: key is reserved: hash`;
+- emits `payment_failure` with `{ error, code: "invalid_metadata", message }`;
+- shows the buyer "Payment could not be processed. Please contact support." and keeps this message on the form;
+- calls `buttonStateSetter("error")` if you passed one; otherwise disables the pay button of a card form;
+- ignores further clicks on the pay button and the Apple Pay button of that form.
+
+```js
+apphud.on("payment_failure", ({ event }) => {
+  if (event?.code === "invalid_metadata") {
+    console.error("Fix stripeMetadata:", event.message);
+  }
+});
+```
+
+**Limitation:** The SDK sends `stripeMetadata.customer` when the form is shown. On one page the Stripe Customer is requested once, by the form that is shown first, and reused by all payment forms. Pass the same `stripeMetadata.customer` to every `paymentForm()` call on the page, and know it before the first call: later changes on the same page are not sent. On a later page load the SDK sends it again, and the server merges it into the existing Stripe Customer: changed values are updated, keys you no longer pass stay on the customer. Use the same key names in every session, because Stripe allows at most 50 keys per object; if a merge fails, the purchase continues and the customer keeps its old keys. `stripeMetadata.subscription` is read when the subscription is created, so the latest value is used.
 
 ---
 

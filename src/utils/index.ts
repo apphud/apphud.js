@@ -286,6 +286,75 @@ export const getAmplitudeId = (): string | null => {
     return null;
 }
 
+// The server validates stripeMetadata (key count, lengths, reserved names) and answers
+// 422 invalid_metadata; the SDK only normalizes it the same way the server does.
+const AMPLITUDE_ID_KEY = "amplitude_id";
+// The server limit for amplitude_id: the SDK's own value must not stop checkout.
+const AMPLITUDE_ID_MAX_LENGTH = 100;
+const STRIPE_METADATA_RESERVED_PREFIX = "apphud_";
+
+/**
+ * Normalize user-provided Stripe metadata, as the server does.
+ * - numbers and booleans become strings; null, undefined, empty strings, nested objects and arrays are dropped
+ * - keys with the reserved `apphud_` prefix are dropped with a warning
+ * Limits are not checked here: the server rejects the request with 422 invalid_metadata.
+ */
+const normalizeStripeMetadata = (input: unknown): Record<string, string> => {
+    const result: Record<string, string> = {};
+
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+        return result;
+    }
+
+    for (const [key, rawValue] of Object.entries(input as Record<string, unknown>)) {
+        let value: string;
+        if (typeof rawValue === "string") {
+            value = rawValue;
+        } else if (typeof rawValue === "number") {
+            // NaN and Infinity become null in JSON, which the server drops anyway
+            if (!Number.isFinite(rawValue)) continue;
+            value = String(rawValue);
+        } else if (typeof rawValue === "boolean") {
+            value = String(rawValue);
+        } else {
+            continue;
+        }
+
+        if (value === "") {
+            continue;
+        }
+
+        if (key.startsWith(STRIPE_METADATA_RESERVED_PREFIX)) {
+            console.warn(`[Apphud] stripeMetadata: key "${key}" is ignored, the "${STRIPE_METADATA_RESERVED_PREFIX}" prefix is reserved.`);
+            continue;
+        }
+
+        result[key] = value;
+    }
+
+    return result;
+}
+
+/**
+ * Build the `metadata` object for POST /customers and POST /subscriptions.
+ * User keys come first, the SDK amplitude_id overrides a user key with the same name.
+ * Without user metadata the result is `{}` or `{ amplitude_id }`, as before.
+ * @param userMetadata - `stripeMetadata.customer` / `stripeMetadata.subscription`
+ * @param amplitudeId - Amplitude device ID, if any
+ */
+export const buildStripeMetadata = (userMetadata: unknown, amplitudeId: string | null): Record<string, string> => {
+    let sdkAmplitudeId: string | null = amplitudeId || null;
+    if (sdkAmplitudeId && sdkAmplitudeId.length > AMPLITUDE_ID_MAX_LENGTH) {
+        log(`Amplitude device ID is longer than ${AMPLITUDE_ID_MAX_LENGTH} characters, not sending it`);
+        sdkAmplitudeId = null;
+    }
+
+    return {
+        ...normalizeStripeMetadata(userMetadata),
+        ...(sdkAmplitudeId && { [AMPLITUDE_ID_KEY]: sdkAmplitudeId }),
+    };
+}
+
 /**
  * Track Meta Pixel purchase or trial event
  * @param subscription - Subscription object containing amount and transaction_id

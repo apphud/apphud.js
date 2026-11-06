@@ -1,7 +1,7 @@
 import {deleteCookie, getCookie, setCookie} from '../cookies';
 import {config} from './config/config';
 import api from "./api";
-import u, {canStringify, log, logError, generateSHA256, getAmplitudeId} from "../utils";
+import u, {canStringify, log, logError, generateSHA256, getAmplitudeId, buildStripeMetadata} from "../utils";
 import {
     VariableDataAttribute,
     DeepLinkURL,
@@ -1391,9 +1391,7 @@ export default class ApphudSDK implements Apphud {
 
         const payload = {
             user_id: user.id,
-            metadata: {
-                ...(amplitude_id && { amplitude_id })
-            },
+            metadata: buildStripeMetadata(undefined, amplitude_id),
         };
 
 
@@ -1466,9 +1464,7 @@ export default class ApphudSDK implements Apphud {
             // User
             user_id: user.id,
             customer_id: customerId,
-            metadata: {
-                ...(amplitude_id && { amplitude_id })
-            },
+            metadata: buildStripeMetadata(undefined, amplitude_id),
         };
 
         /* Call the API */

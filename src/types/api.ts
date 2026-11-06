@@ -1,6 +1,7 @@
 export interface Error {
     id: string
     title: string
+    code?: string | number | null
 }
 
 export interface BackendResponse {
