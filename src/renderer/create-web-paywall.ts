@@ -37,6 +37,8 @@ const isObject = (value: unknown): value is JsonObject =>
 const errorMessage = (e: unknown) =>
   e instanceof Error ? e.message : String(e);
 
+// `$plans.0.price` → `plans.0`: the item a collection field belongs to.
+const COLLECTION_KEY = /^\$([^.]+\.\d+)(?:\.|$)/;
 // Plan cards: the template's `plans` collection, one node per item.
 const PLAN_NODES = '[data-list="plans"] > [data-index]';
 // Where the checkout mounts its payment form; the renderer draws nothing inside.
@@ -86,6 +88,10 @@ export function createWebPaywall(
   };
   let data: WebPaywallData = {};
   let destroyed = false;
+  // Texts rendered by the server, by key: `$title.text`, `$plans.0.price`.
+  // They win over `data` for the language they were rendered in.
+  let texts: Record<string, string> | null = options.texts ?? null;
+  let textsLocale: string | null = null;
 
   // ------------------------------------------------------- lifecycle helpers
   const listeners = new AbortController();
@@ -126,9 +132,23 @@ export function createWebPaywall(
   const macroContext = (): MacroContext => ({
     locale: state.locale,
     defaultLocale: options.defaultLocale || "en",
+    erase: !!options.hosted,
   });
   const txt = (value: unknown) => formatText(value, macroContext());
-  const text = (path: string) => txt(getPath(data, path));
+  // The server's text of the data path `key`, else `value` through the macros.
+  const keyed = (key: string, value: unknown) => {
+    const rendered =
+      texts && (textsLocale == null || textsLocale === state.locale)
+        ? texts["$" + key]
+        : undefined;
+    return typeof rendered === "string" ? rendered : txt(value);
+  };
+  const text = (path: string) => keyed(path, getPath(data, path));
+  // A field of the selected plan: `plans.<index>.<field>`.
+  const planText = (field: string) =>
+    state.plan == null
+      ? txt(undefined)
+      : keyed(`plans.${state.plan}.${field}`, currentPlan()?.[field]);
 
   const currentPlan = () =>
     state.plan == null ? undefined : plans()[state.plan];
@@ -171,7 +191,15 @@ export function createWebPaywall(
   }
 
   // data-bind[-src|-href|-icon] = schema data paths; data-item-bind|-src|-href|-icon = relative to a list item
-  function bind(scope: HTMLElement, source: unknown, prefix = "") {
+  // at `base` (`plans.0`), the key of its server texts.
+  // `textsOnly`: a texts redraw, which leaves images, links and icons alone.
+  function bind(
+    scope: HTMLElement,
+    source: unknown,
+    prefix = "",
+    base = "",
+    textsOnly = false,
+  ) {
     const attr = (suffix: string) =>
       prefix
         ? `data-${prefix}${suffix.slice(1) || "bind"}`
@@ -184,10 +212,14 @@ export function createWebPaywall(
         .querySelectorAll<HTMLElement>(`[${attr(suffix)}]`)
         .forEach((node) => fn(node, node.getAttribute(attr(suffix)) ?? ""));
     each("", (node, path) => {
-      const value = txt(getPath(source, path));
+      const value = keyed(
+        base ? `${base}.${path}` : path,
+        getPath(source, path),
+      );
       node.textContent = value;
       node.classList.toggle("is-empty", !value);
     });
+    if (textsOnly) return;
     each("-src", (node, path) =>
       node.setAttribute("src", resolveIcon(getPath(source, path))),
     );
@@ -206,7 +238,8 @@ export function createWebPaywall(
       );
       const proto = tpl?.content.firstElementChild;
       if (!proto) return;
-      const value = getPath(data, list.dataset.list ?? "");
+      const path = list.dataset.list ?? "";
+      const value = getPath(data, path);
       const items = Array.isArray(value) ? value : [];
       children.forEach((node) => {
         if (node !== tpl) node.remove();
@@ -218,7 +251,7 @@ export function createWebPaywall(
         if (isObject(item) && typeof item.icon_mode === "string") {
           node.dataset.iconMode = item.icon_mode;
         }
-        bind(node, item, "item-");
+        bind(node, item, "item-", `${path}.${i}`);
         list.append(node);
       });
       const hidden =
@@ -240,19 +273,25 @@ export function createWebPaywall(
     selectPlan(state.plan, true);
   }
 
-  function selectPlan(index: number, silent = false) {
-    state.plan = index;
+  // The selected plan's card and its texts, without telling the checkout.
+  function paintPlan() {
     planNodes().forEach((node) => {
-      const on = Number(node.dataset.index) === index;
+      const on = Number(node.dataset.index) === state.plan;
       node.classList.toggle("is-selected", on);
       node.setAttribute("aria-checked", String(on));
     });
     root.querySelectorAll<HTMLElement>("[data-plan-bind]").forEach((node) => {
-      const value = txt(currentPlan()?.[node.dataset.planBind ?? ""]);
+      const value = planText(node.dataset.planBind ?? "");
       node.textContent = value;
       node.classList.toggle("is-empty", !value);
     });
     renderCtaLabel();
+  }
+
+  function selectPlan(index: number, silent = false) {
+    state.plan = index;
+    paintPlan();
+    options.onPlan?.(currentProduct(), { setTexts });
     if (checkoutMounted) checkout.setPlan(currentProduct());
     if (!silent) {
       clearError();
@@ -267,7 +306,7 @@ export function createWebPaywall(
     if (state.status === "processing") {
       label.textContent = text("payment.processing");
     } else if (label.dataset.planBind) {
-      label.textContent = txt(currentPlan()?.[label.dataset.planBind]);
+      label.textContent = planText(label.dataset.planBind);
     } else {
       label.textContent = text(label.dataset.bind ?? "");
     }
@@ -275,10 +314,13 @@ export function createWebPaywall(
 
   function renderSuccessPage() {
     const page = isObject(data.success_page) ? data.success_page : {};
-    successStyle.textContent = typeof page.css === "string" ? page.css : "";
+    const css = typeof page.css === "string" ? page.css : "";
+    // a texts redraw lands here too: no stylesheet re-parse for nothing
+    if (successStyle.textContent !== css) successStyle.textContent = css;
     successPage.render(
       (field: SuccessField) =>
-        txt(page[field]) || defaultSuccessText(field, state.locale),
+        keyed(`success_page.${field}`, page[field]) ||
+        defaultSuccessText(field, state.locale),
     );
   }
 
@@ -347,6 +389,72 @@ export function createWebPaywall(
     renderExtras();
     if (checkoutMounted) void checkout.refresh?.();
   }
+
+  // Only what texts change, in the nodes already there: no theme, countdown or
+  // checkout calls, so the checkout itself may set texts while it handles a
+  // plan, and the focused plan card and running animations stay.
+  function renderTexts() {
+    root.querySelectorAll<HTMLElement>("[data-list]").forEach((list) => {
+      const path = list.dataset.list ?? "";
+      const value = getPath(data, path);
+      const items = Array.isArray(value) ? value : [];
+      Array.from(list.children).forEach((node) => {
+        if (!(node instanceof HTMLElement) || node.dataset.index == null)
+          return;
+        const i = Number(node.dataset.index);
+        bind(node, items[i], "item-", `${path}.${i}`, true);
+      });
+    });
+    bind(root, data, "", "", true);
+    paintPlan();
+    renderSuccessPage();
+  }
+
+  function setTexts(next: Record<string, string> | null, locale?: string) {
+    const nextLocale = locale ?? null;
+    if (nextLocale === textsLocale && sameTexts(texts, next)) return;
+    texts = next ? { ...next } : null;
+    textsLocale = nextLocale;
+    if (!state.template) return;
+    renderTexts();
+    // The form draws its own texts (ctx.text). Later, not now: the checkout
+    // may be setting these texts from inside its own plan handling.
+    if (checkoutMounted) {
+      queueMicrotask(() => {
+        if (checkoutMounted && !destroyed) void checkout.refresh?.();
+      });
+    }
+  }
+
+  // An edit in the builder: the texts of changed fields are the old data's
+  // until the next server answer, so they go and the field shows its own data.
+  // A collection field compares its whole item: a plan that moved up keeps its
+  // text but not its bundle, and so not its price.
+  function dropStaleTexts(prev: WebPaywallData, next: WebPaywallData) {
+    if (!texts) return;
+    const source = (from: WebPaywallData, key: string) => {
+      const item = COLLECTION_KEY.exec(key);
+      return JSON.stringify(getPath(from, item ? item[1] : key.slice(1)));
+    };
+    const kept = Object.fromEntries(
+      Object.entries(texts).filter(
+        ([key]) => source(prev, key) === source(next, key),
+      ),
+    );
+    texts = Object.keys(kept).length ? kept : null;
+  }
+
+  const sameTexts = (
+    a: Record<string, string> | null,
+    b: Record<string, string> | null,
+  ) => {
+    if (!a || !b) return a === b;
+    const keys = Object.keys(a);
+    return (
+      keys.length === Object.keys(b).length &&
+      keys.every((key) => b[key] === a[key])
+    );
+  };
 
   // --------------------------------------------------------------- checkout
   const checkout: WebPaywallCheckout =
@@ -528,6 +636,10 @@ export function createWebPaywall(
 
   async function mount(name?: string, nextData?: WebPaywallData) {
     const tpl = findTemplate(name);
+    // keys of another template's fields, or of the data being replaced
+    if (state.template && (state.template !== tpl.name || nextData)) {
+      texts = textsLocale = null;
+    }
     saveDraft();
     unmountCheckout();
     templateStyle.textContent = tpl.css;
@@ -575,16 +687,20 @@ export function createWebPaywall(
     },
     mount,
     setData(next: WebPaywallData) {
+      dropStaleTexts(data, next);
       data = next;
       renderAll();
     },
     updateData(recipe: (draft: WebPaywallData) => void) {
       const next = clone(data);
       recipe(next);
+      dropStaleTexts(data, next);
       data = next;
       renderAll();
     },
     resetData() {
+      // the texts were rendered from the data being dropped
+      texts = textsLocale = null;
       data = clone(findTemplate(state.template ?? undefined).data);
       state.plan = null;
       renderAll();
@@ -598,6 +714,7 @@ export function createWebPaywall(
       state.locale = locale;
       renderAll();
     },
+    setTexts,
     setTheme(mode: ThemeMode) {
       state.theme = mode;
       renderAll();

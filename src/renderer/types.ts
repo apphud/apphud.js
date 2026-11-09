@@ -92,6 +92,15 @@ export interface CreateWebPaywallOptions {
   // The hosted page: the device's own safe area instead of the builder's
   // device frame insets.
   hosted?: boolean;
+  // Texts the server rendered (Liquid), by key: `$title.text`, `$plans.0.price`.
+  // A key here wins over its data path; see `WebPaywall.setTexts`.
+  texts?: Record<string, string> | null;
+  // Every plan selection, the first one and each redraw included. `paywall`
+  // works already during the first render, inside createWebPaywall.
+  onPlan?: (
+    product: PlanProduct | null,
+    paywall: Pick<WebPaywall, "setTexts">,
+  ) => void;
   // Per-template drafts; the engine writes into it on template switch and destroy.
   saved?: Record<string, WebPaywallDraft>;
   onEvent?: (
@@ -113,6 +122,14 @@ export interface WebPaywall {
   resetData: () => WebPaywallData;
   setPlan: (index: number) => void;
   setLocale: (locale: string) => void;
+  // Texts the server rendered, by key (`$title.text`, `$plans.0.price`): each
+  // shows instead of its data path; a path without a key renders as before.
+  // `data` keeps the Liquid. With `locale`, they show only in that language.
+  // null drops them, and so do a switch to another template and resetData.
+  // An empty text shows empty, except where the paywall has a text of its own
+  // to fall back to: success page, checkout labels, error messages.
+  // The same texts again redraw nothing.
+  setTexts: (texts: Record<string, string> | null, locale?: string) => void;
   setTheme: (mode: ThemeMode) => void;
   setWallet: (mode: WalletMode) => Promise<void>;
   preview: (status: PreviewStatus) => void;

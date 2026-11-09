@@ -6,8 +6,9 @@ import type {
 } from "../renderer/types";
 import type { ApiClient } from "./api";
 import { createPaddleCheckout, type PaddleCheckoutOptions } from "./paddle";
-import type { PagePayload, PaymentKind } from "./payload";
+import { PAYMENT_KINDS, type PagePayload, type PaymentKind } from "./payload";
 import type { CompletedPayment } from "./purchase";
+import { kindsOf } from "./rendered-texts";
 import { createStripeCheckout, type StripeCheckoutOptions } from "./stripe";
 import { checkoutText } from "./texts";
 
@@ -20,11 +21,14 @@ export interface PageCheckoutOptions {
   complete: (payment: CompletedPayment) => Promise<PayResult>;
   loadPaddle?: PaddleCheckoutOptions["loadPaddle"];
   loadStripe?: StripeCheckoutOptions["loadStripe"];
+  // The kind of the current plan's form changed (null: the plan has none).
+  // The page's rendered texts follow it.
+  onKind?: (kind: PaymentKind | null) => void;
 }
 
 // Kinds the page can pay with, the first preferred when a plan sells through
 // both: Stripe shows the wallets and the card right in the paywall.
-const SUPPORTED: PaymentKind[] = ["stripe", "paddle"];
+const SUPPORTED = PAYMENT_KINDS;
 
 // Provider forms look their mount point up in the document (Paddle by class
 // name) and wallets dislike shadow DOM, so they live in a light-DOM child of
@@ -67,6 +71,8 @@ export function createPageCheckout(
   // the buyer's choice, kept while the next plan sells through it
   let chosen: PaymentKind | null = null;
   let current: { kind: PaymentKind; form: WebPaywallCheckout } | null = null;
+  // the kind last reported to onKind; undefined: none reported yet
+  let reported: PaymentKind | null | undefined;
 
   const theme = () =>
     slot?.closest("[data-theme]")?.getAttribute("data-theme") ?? "dark";
@@ -97,14 +103,8 @@ export function createPageCheckout(
     return form ?? null;
   };
 
-  const kindsFor = (product: PlanProduct | null): PaymentKind[] => {
-    const kinds = product?.bundle_id
-      ? (payload.paymentKinds[product.bundle_id] ?? [])
-      : [];
-    return SUPPORTED.filter(
-      (kind) => kinds.includes(kind) && providers.has(kind),
-    );
-  };
+  const kindsFor = (product: PlanProduct | null): PaymentKind[] =>
+    kindsOf(payload, product?.bundle_id);
 
   const renderTabs = (kinds: PaymentKind[], active: PaymentKind | null) => {
     if (!tabs || !ctx) return;
@@ -138,6 +138,11 @@ export function createPageCheckout(
   const apply = () => {
     const kinds = kindsFor(plan);
     const kind = chosen && kinds.includes(chosen) ? chosen : (kinds[0] ?? null);
+    // first: the tabs and the form below draw the texts of this kind
+    if (kind !== reported) {
+      reported = kind;
+      options.onKind?.(kind);
+    }
     renderTabs(kinds, kind);
     switchTo(kind);
     current?.form.setPlan(plan);

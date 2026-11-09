@@ -56,8 +56,31 @@ describe("parsePayload", () => {
         android: "apphudtestapp://ddd.aphd.cc/_apphud/return",
       },
       successUrl: null,
+      locale: null,
+      renderedTexts: null,
       debug: null,
     });
+  });
+
+  it("reads the server's language and rendered texts, strings only", () => {
+    const payload = parsePayload({
+      ...full,
+      locale: "ES",
+      rendered_texts: {
+        stripe: { "$plans.0.title": "$9.99", $bad: 1 },
+        none: {},
+        cash: { "$title.text": "x" },
+        paddle: "nope",
+      },
+    });
+    expect(payload.locale).toBe("ES");
+    expect(payload.renderedTexts).toEqual({
+      stripe: { "$plans.0.title": "$9.99" },
+      none: {},
+    });
+    expect(parsePayload({ ...full, rendered_texts: [] }).renderedTexts).toBe(
+      null,
+    );
   });
 
   it("takes debug from the page URL, as is", () => {

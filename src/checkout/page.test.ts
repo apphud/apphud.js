@@ -2,6 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApiClient } from "./api";
 import { mount, type MountedPage } from "./page";
 
+// Provider scripts never load here: the forms just wait for them.
+vi.mock("@stripe/stripe-js-endive/pure", () => ({
+  loadStripe: vi.fn(() => new Promise(() => {})),
+}));
+vi.mock("@paddle/paddle-js", () => ({
+  initializePaddle: vi.fn(() => new Promise(() => {})),
+}));
+
 const screen = {
   html: `
     <h1 class="title" data-bind="title"></h1>
@@ -105,6 +113,154 @@ describe("hosted page", () => {
       "none",
     );
     expect(document.querySelector("[data-apphud-sandbox]")).toBeNull();
+  });
+
+  it("shows the server's texts in the server's language", async () => {
+    const el = host();
+    page = mount(
+      el,
+      payload({
+        customer: null,
+        locale: "es",
+        rendered_texts: {
+          stripe: { "$plans.0.title": "Anual 9,99 $" },
+          none: { "$plans.0.title": "Anual" },
+        },
+      }),
+    );
+    await page.paywall.ready;
+    const root = el.shadowRoot?.getElementById("wp-root");
+
+    expect(root?.lang).toBe("es");
+    // a preview: the plan's first kind of payment_kinds, Stripe
+    expect(root?.querySelector(".plan")?.textContent).toBe("Anual 9,99 $");
+    // no text in `es` and no key: the default language, as before
+    expect(root?.querySelector(".title")?.textContent).toBe("Go premium");
+  });
+
+  describe("rendered texts by the kind of the selected plan", () => {
+    const kindsScreen = {
+      html: `
+        <h1 class="title" data-bind="title.text"></h1>
+        <div data-list="plans">
+          <template><div class="plan"><span data-item-bind="title"></span></div></template>
+        </div>
+        <div data-checkout></div>
+        <button type="button" id="wp-cta"><span id="wp-cta-label" data-plan-bind="cta"></span></button>
+      `,
+      css: "",
+      data: {
+        title: { text: { en: "{{ products[0].price }}" } },
+        plans: [
+          { product: { bundle_id: "b-stripe" }, title: "{{ product.price }}" },
+          { product: { bundle_id: "b-paddle" }, title: "{{ product.price }}" },
+          { product: { bundle_id: "b-both" }, title: "{{ product.price }}" },
+        ],
+        plans_settings: { default_plan: 2 },
+      },
+    };
+    const pass = (kind: string) => ({
+      "$payment.provider_stripe": `${kind} tab`,
+      "$title.text": `${kind} top`,
+      "$plans.0.title": `${kind} 0`,
+      "$plans.1.title": `${kind} 1`,
+      "$plans.2.title": `${kind} 2`,
+    });
+    const kindsPayload = (overrides: Record<string, unknown> = {}) =>
+      payload({
+        screen: kindsScreen,
+        locale: "en",
+        providers: [
+          { id: "p-stripe", kind: "stripe", identifier: "acct", token: "pk" },
+          { id: "p-paddle", kind: "paddle", identifier: "", token: "tok" },
+        ],
+        payment_kinds: {
+          "b-stripe": ["stripe"],
+          "b-paddle": ["paddle"],
+          "b-both": ["stripe", "paddle"],
+        },
+        rendered_texts: {
+          stripe: pass("stripe"),
+          paddle: pass("paddle"),
+          none: pass("none"),
+        },
+        ...overrides,
+      });
+    const shadowText = (el: HTMLElement, selector: string) =>
+      el.shadowRoot?.querySelector(selector)?.textContent;
+    const clickPlan = (el: HTMLElement, index: number) =>
+      el.shadowRoot?.querySelectorAll<HTMLElement>(".plan")[index]?.click();
+
+    it("follows the plan in a preview, which has no checkout", async () => {
+      const el = host();
+      page = mount(el, kindsPayload({ customer: null }));
+      await page.paywall.ready;
+
+      // the default plan sells through Paddle only
+      expect(shadowText(el, ".title")).toBe("paddle top");
+      clickPlan(el, 0);
+      expect(shadowText(el, ".title")).toBe("stripe top");
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("follows the plan and the buyer's Stripe or Paddle choice", async () => {
+      const el = host();
+      page = mount(el, kindsPayload());
+      await page.paywall.ready;
+      await Promise.resolve();
+      const tab = (kind: string) =>
+        el.querySelector<HTMLButtonElement>(
+          `.aph-providers button[data-kind="${kind}"]`,
+        );
+
+      expect(shadowText(el, ".title")).toBe("paddle top");
+      clickPlan(el, 2);
+      expect(shadowText(el, ".title")).toBe("stripe top");
+      expect(shadowText(el, ".plan:nth-of-type(3)")).toBe("stripe 2");
+      // the tabs drawn for this plan already take the new kind's texts
+      expect(tab("stripe")?.textContent).toBe("stripe tab");
+
+      tab("paddle")?.click();
+      expect(shadowText(el, ".title")).toBe("paddle top");
+      // a plan field follows the choice; a Stripe-only plan stays on Stripe
+      const cards = el.shadowRoot?.querySelectorAll(".plan");
+      expect(cards?.[2]?.textContent).toBe("paddle 2");
+      expect(cards?.[0]?.textContent).toBe("stripe 0");
+
+      // the buyer's Paddle stays for a plan that sells through both
+      clickPlan(el, 1);
+      clickPlan(el, 2);
+      expect(shadowText(el, ".title")).toBe("paddle top");
+
+      clickPlan(el, 0);
+      expect(shadowText(el, ".title")).toBe("stripe top");
+    });
+
+    it("follows the plan when the template has no place for the form", async () => {
+      const el = host();
+      page = mount(
+        el,
+        kindsPayload({
+          screen: {
+            ...kindsScreen,
+            html: kindsScreen.html.replace("<div data-checkout></div>", ""),
+          },
+        }),
+      );
+      await page.paywall.ready;
+
+      expect(shadowText(el, ".title")).toBe("paddle top");
+      clickPlan(el, 0);
+      expect(shadowText(el, ".title")).toBe("stripe top");
+    });
+
+    it("skips a malformed language for the next one", async () => {
+      const el = host();
+      page = mount(el, kindsPayload({ locale: "*" }));
+      await page.paywall.ready;
+      // the customer's `ru`
+      expect(el.shadowRoot?.getElementById("wp-root")?.lang).toBe("ru");
+    });
   });
 
   it("sends paywall_shown once, by customer_id, with the link's ids", async () => {

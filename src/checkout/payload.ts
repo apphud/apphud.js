@@ -6,6 +6,11 @@ import type { WebPaywallData } from "../renderer/types";
 
 export type Environment = "production" | "sandbox";
 export type PaymentKind = "stripe" | "paddle";
+// Rendered texts come per payment kind, and as `none` for plans without one.
+export type TextsKind = PaymentKind | "none";
+
+// Kinds in the order a plan prefers them (backend: the same order).
+export const PAYMENT_KINDS: PaymentKind[] = ["stripe", "paddle"];
 
 export interface PageScreen {
   html: string;
@@ -42,6 +47,12 @@ export interface PagePayload {
   paymentKinds: Record<string, PaymentKind[]>;
   returnUrls: { ios: string; android: string } | null;
   successUrl: string | null;
+  // The language the server rendered the texts in; null: an older backend,
+  // the page takes the customer's or the browser's.
+  locale: string | null;
+  // Texts of the screen the server rendered with Liquid, by kind and key
+  // (`$plans.0.title`); null: an older backend, the data renders as is.
+  renderedTexts: Partial<Record<TextsKind, Record<string, string>>> | null;
   // `debug` of the page's own URL, not of the backend payload: the checkout
   // passes it on as is, and the server decides the environment.
   debug: string | null;
@@ -113,6 +124,21 @@ const readReturnUrls = (value: unknown): PagePayload["returnUrls"] => {
   return ios && android ? { ios, android } : null;
 };
 
+const readRenderedTexts = (value: unknown): PagePayload["renderedTexts"] => {
+  if (!isObject(value)) return null;
+  const result: PagePayload["renderedTexts"] = {};
+  (["stripe", "paddle", "none"] as const).forEach((kind) => {
+    const texts = value[kind];
+    if (!isObject(texts)) return;
+    result[kind] = Object.fromEntries(
+      Object.entries(texts).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
+  });
+  return result;
+};
+
 // `search` — the page URL's query, where `debug` comes from.
 export function parsePayload(raw: unknown, search = ""): PagePayload {
   const value = typeof raw === "string" ? (JSON.parse(raw) as unknown) : raw;
@@ -141,6 +167,8 @@ export function parsePayload(raw: unknown, search = ""): PagePayload {
     paymentKinds: readPaymentKinds(value.payment_kinds),
     returnUrls: readReturnUrls(value.return_urls),
     successUrl: str(value.success_url),
+    locale: str(value.locale),
+    renderedTexts: readRenderedTexts(value.rendered_texts),
     debug: new URLSearchParams(search).get("debug"),
   };
 }

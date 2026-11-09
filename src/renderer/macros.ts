@@ -2,6 +2,10 @@ export interface MacroContext {
   locale: string;
   defaultLocale: string;
   now?: () => Date;
+  // The hosted page: Liquid this cannot compute is erased, none reaches the
+  // buyer. Otherwise (the builder) it stays as written, so the developer sees
+  // what did not resolve.
+  erase?: boolean;
 }
 
 type MacroValue = string | number | Date | null | undefined;
@@ -49,18 +53,27 @@ const FILTERS: Record<
     ),
 };
 
-// Prices are plain text since `products[n]` was dropped: `today` is the only
-// operand left (trial end dates).
-export const evalMacro = (expr: string, ctx: MacroContext): string => {
-  const now = ctx.now?.() ?? new Date();
+// `today` with `add_days: <number>` filters is all computed here (trial end
+// dates). Prices and the rest of Liquid come rendered by the server
+// (`setTexts`); any other macro is unknown.
+const ADD_DAYS = /^add_days\s*:\s*-?\d+(\.\d+)?$/;
+const isKnown = (expr: string) => {
   const [head, ...filters] = expr.split("|").map((part) => part.trim());
-  let value: MacroValue = head === "today" ? now : "";
+  return head === "today" && filters.every((filter) => ADD_DAYS.test(filter));
+};
+
+export const evalMacro = (expr: string, ctx: MacroContext): string => {
+  if (!isKnown(expr)) return "";
+  const now = ctx.now?.() ?? new Date();
+  const [, ...filters] = expr.split("|").map((part) => part.trim());
+  let value: MacroValue = now;
   filters.forEach((filter) => {
     const [name, arg] = filter.split(":").map((part) => part.trim());
     const apply = FILTERS[name];
     if (apply) value = apply(value, arg, now);
   });
   if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return "";
     return new Intl.DateTimeFormat(ctx.locale, {
       month: "short",
       day: "numeric",
@@ -69,8 +82,21 @@ export const evalMacro = (expr: string, ctx: MacroContext): string => {
   return String(value ?? "");
 };
 
-// Localized text with v4-style macros: {{ today | add_days: 3 }}.
-export const formatText = (value: unknown, ctx: MacroContext): string =>
-  translate(value, ctx).replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, expr: string) =>
-    evalMacro(expr, ctx),
-  );
+// Liquid tags. Only a field the server sent no text for gets here (an older
+// backend): the page drops the tags and keeps the words around them.
+const TAG = /\{%[\s\S]*?%\}/g;
+const MACRO = /\{\{\s*([^}]+?)\s*\}\}/g;
+
+// Localized text with v4-style macros: {{ today | add_days: 3 }}. The rest of
+// Liquid stays as written, or is erased with `erase` (the hosted page).
+export const formatText = (value: unknown, ctx: MacroContext): string => {
+  const text = translate(value, ctx);
+  if (!ctx.erase) {
+    return text.replace(MACRO, (match, expr: string) =>
+      isKnown(expr) ? evalMacro(expr, ctx) : match,
+    );
+  }
+  return text
+    .replace(TAG, "")
+    .replace(MACRO, (_, expr: string) => evalMacro(expr, ctx));
+};

@@ -547,3 +547,205 @@ describe("createWebPaywall checkout", () => {
     paywall.destroy();
   });
 });
+
+describe("createWebPaywall server texts", () => {
+  const template = {
+    name: "texts",
+    title: "Texts",
+    schema: [],
+    css: "",
+    html: `
+      <h1 class="title" data-bind="title.text"></h1>
+      <p class="note" data-bind="note"></p>
+      <div data-list="plans">
+        <template><div class="plan"><span data-item-bind="price"></span></div></template>
+      </div>
+      <p class="plan-price" data-plan-bind="price"></p>
+      <div data-checkout></div>
+      <button type="button" id="wp-cta"><span id="wp-cta-label" data-plan-bind="cta"></span></button>
+    `,
+    data: {
+      title: { text: { en: "Now {{ product.formatted_price }}" } },
+      note: { en: "Plain" },
+      plans: [
+        {
+          product: { bundle_id: "b1" },
+          price: "{{ product.price }}",
+          cta: "Buy",
+        },
+        { product: { bundle_id: "b2" }, price: "Two", cta: "Buy two" },
+      ],
+      success_page: { title: "{{ product.price }}" },
+    },
+  };
+
+  const checkoutStub = () => ({
+    mount: vi.fn(),
+    setPlan: vi.fn(),
+    refresh: vi.fn(),
+    submit: vi.fn(),
+    unmount: vi.fn(),
+  });
+
+  const textOf = (root: HTMLElement, selector: string) =>
+    root.querySelector(selector)?.textContent;
+
+  it("shows the server's texts over data, in every kind of binding", async () => {
+    const { shadow } = createHost();
+    const checkout = checkoutStub();
+    const paywall = create(shadow, { templates: [template], checkout });
+    await paywall.ready;
+    const root = rootOf(shadow);
+    checkout.setPlan.mockClear();
+    checkout.refresh.mockClear();
+
+    paywall.setTexts({
+      "$title.text": "Now $10",
+      "$plans.0.price": "$10",
+      "$plans.0.cta": "Buy for $10",
+      "$plans.1.price": "",
+      "$success_page.title": "Paid $10",
+    });
+
+    expect(textOf(root, ".title")).toBe("Now $10");
+    // no key: the data path, as before
+    expect(textOf(root, ".note")).toBe("Plain");
+    const cards = planNodes(root).map((node) => node.textContent);
+    expect(cards).toEqual(["$10", ""]);
+    // the selection survives the redrawn plan cards
+    expect(planNodes(root)[0].classList.contains("is-selected")).toBe(true);
+    expect(textOf(root, ".plan-price")).toBe("$10");
+    expect(textOf(root, "#wp-cta-label")).toBe("Buy for $10");
+    expect(textOf(root, ".aph-success__title")).toBe("Paid $10");
+    // texts redraw nothing the checkout hears about
+    expect(checkout.setPlan).not.toHaveBeenCalled();
+    expect(checkout.refresh).not.toHaveBeenCalled();
+    // the data keeps the Liquid the dashboard saves
+    expect(paywall.data.title).toEqual(template.data.title);
+
+    planNodes(root)[1].click();
+    expect(textOf(root, ".plan-price")).toBe("");
+    expect(textOf(root, "#wp-cta-label")).toBe("Buy two");
+
+    paywall.setTexts(null);
+    expect(textOf(root, ".title")).toBe("Now {{ product.formatted_price }}");
+  });
+
+  it("redraws texts in the nodes already there, and only when they change", async () => {
+    const { shadow } = createHost();
+    const paywall = create(shadow, { templates: [template] });
+    await paywall.ready;
+    const root = rootOf(shadow);
+    const card = planNodes(root)[1];
+    card.tabIndex = 0;
+    card.focus();
+
+    paywall.setTexts({ "$plans.1.price": "$20" });
+    // the same card, still focused: no list rebuilt under the buyer
+    expect(planNodes(root)[1]).toBe(card);
+    expect(shadow.activeElement).toBe(card);
+    expect(card.textContent).toBe("$20");
+
+    // the same map again redraws nothing
+    root.querySelector(".note")!.textContent = "touched";
+    paywall.setTexts({ "$plans.1.price": "$20" });
+    expect(textOf(root, ".note")).toBe("touched");
+  });
+
+  it("lets the checkout redraw its texts after the call, not inside it", async () => {
+    const { shadow } = createHost();
+    const checkout = checkoutStub();
+    const paywall = create(shadow, { templates: [template], checkout });
+    await paywall.ready;
+    checkout.refresh.mockClear();
+
+    paywall.setTexts({ "$payment.divider": "o" });
+    expect(checkout.refresh).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(checkout.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops the texts of fields the builder edits until the next answer", async () => {
+    const { shadow } = createHost();
+    const paywall = create(shadow, { templates: [template] });
+    await paywall.ready;
+    const root = rootOf(shadow);
+    // both plans carry the same Liquid; only their bundles differ
+    paywall.updateData((draft) => {
+      (draft.plans as JsonObject[])[1].price = "{{ product.price }}";
+    });
+    paywall.setTexts({
+      "$title.text": "Now $10/yr",
+      $note: "server note",
+      "$plans.0.price": "$10/yr",
+      "$plans.1.price": "$2/mo",
+    });
+
+    // the yearly plan goes: the monthly one moves up with its own data
+    paywall.updateData((draft) => {
+      (draft.plans as unknown[]).shift();
+    });
+    expect(planNodes(root).map((node) => node.textContent)).toEqual([
+      "{{ product.price }}",
+    ]);
+    // untouched fields keep the server's texts
+    expect(textOf(root, ".title")).toBe("Now $10/yr");
+
+    paywall.setData({ ...paywall.data, title: { text: { en: "Hello" } } });
+    expect(textOf(root, ".title")).toBe("Hello");
+    expect(textOf(root, ".note")).toBe("server note");
+  });
+
+  it("drops the texts with the data they were rendered from", async () => {
+    const { shadow } = createHost();
+    const other = { ...template, name: "other" };
+    const paywall = create(shadow, { templates: [template, other] });
+    await paywall.ready;
+    const root = rootOf(shadow);
+
+    paywall.setTexts({ $note: "server" });
+    await paywall.mount("other");
+    expect(textOf(root, ".note")).toBe("Plain");
+
+    paywall.setTexts({ $note: "server" });
+    paywall.resetData();
+    expect(textOf(root, ".note")).toBe("Plain");
+
+    paywall.setTexts({ $note: "server" });
+    await paywall.mount("other", { ...other.data });
+    expect(textOf(root, ".note")).toBe("Plain");
+  });
+
+  it("shows texts of another language only once the paywall switches to it", async () => {
+    const { shadow } = createHost();
+    const paywall = create(shadow, { templates: [template], locale: "en" });
+    await paywall.ready;
+    const root = rootOf(shadow);
+
+    paywall.setTexts({ "$title.text": "Сейчас 10 $" }, "ru");
+    expect(textOf(root, ".title")).toBe("Now {{ product.formatted_price }}");
+
+    paywall.setLocale("ru");
+    expect(textOf(root, ".title")).toBe("Сейчас 10 $");
+  });
+
+  it("keeps an unresolved macro in the builder and erases it on the page", async () => {
+    const builder = createHost();
+    const preview = create(builder.shadow, { templates: [template] });
+    await preview.ready;
+    expect(textOf(rootOf(builder.shadow), ".plan-price")).toBe(
+      "{{ product.price }}",
+    );
+
+    const page = createHost();
+    const hosted = create(page.shadow, {
+      templates: [template],
+      hosted: true,
+      texts: { "$title.text": "Now $10" },
+    });
+    await hosted.ready;
+    expect(textOf(rootOf(page.shadow), ".plan-price")).toBe("");
+    // texts given up front show from the first render
+    expect(textOf(rootOf(page.shadow), ".title")).toBe("Now $10");
+  });
+});

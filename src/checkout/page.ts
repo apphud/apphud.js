@@ -6,6 +6,7 @@ import { createPageCheckout } from "./checkout";
 import { createPageEvents } from "./events";
 import { parsePayload, type PagePayload } from "./payload";
 import { createPurchaseCompleter, returnUrlFor } from "./purchase";
+import { kindsOf, textsFor } from "./rendered-texts";
 
 export interface MountedPage {
   readonly payload: PagePayload;
@@ -13,9 +14,15 @@ export interface MountedPage {
   destroy: () => void;
 }
 
-// Language of the template texts: data keys are `en`, `ru`, …
-const language = (locale: string | null | undefined) =>
-  (locale || "en").split(/[-_]/)[0].toLowerCase() || "en";
+// Language of the template texts: data keys are `en`, `ru`, … The first of
+// `locales` that reads as one; a malformed value would break Intl.
+const language = (...locales: (string | null | undefined)[]) => {
+  for (const locale of locales) {
+    const code = (locale ?? "").split(/[-_]/)[0].toLowerCase();
+    if (/^[a-z]{2,3}$/.test(code)) return code;
+  }
+  return "en";
+};
 
 // The page scrolls as on a phone, without a scroll bar: a desktop browser
 // (and the dashboard's preview frame) would draw one over the paywall.
@@ -48,6 +55,14 @@ export function mount(el: HTMLElement, raw: unknown): MountedPage {
     : null;
   const events = createPageEvents(api, payload);
   const returnUrl = returnUrlFor(payload, view?.navigator.userAgent ?? "");
+  // set below; the checkout reports kinds only once the paywall is mounted
+  let paywall: WebPaywall | null = null;
+  // Once the checkout's form reports its kind, that kind picks the texts;
+  // until then (a preview, a template without [data-checkout], the first
+  // render) the selected plan's first kind does — the form's pick too.
+  let formKind = false;
+  const planKind = (bundleId: string | undefined) =>
+    kindsOf(payload, bundleId)[0] ?? null;
   const checkout = api
     ? createPageCheckout({
         payload,
@@ -59,6 +74,10 @@ export function mount(el: HTMLElement, raw: unknown): MountedPage {
           returnUrl,
           redirect: (url) => view?.location.replace(url),
         }),
+        onKind: (kind) => {
+          formKind = true;
+          paywall?.setTexts(textsFor(payload, kind));
+        },
       })
     : undefined;
 
@@ -68,7 +87,7 @@ export function mount(el: HTMLElement, raw: unknown): MountedPage {
     payload.environment === "sandbox" ? showSandboxBanner(doc) : null;
 
   const shadow = el.shadowRoot ?? el.attachShadow({ mode: "open" });
-  const paywall = createWebPaywall(shadow, {
+  paywall = createWebPaywall(shadow, {
     templates: [
       {
         name: "paywall",
@@ -80,7 +99,17 @@ export function mount(el: HTMLElement, raw: unknown): MountedPage {
       },
     ],
     template: "paywall",
-    locale: language(payload.customer?.locale ?? view?.navigator.language),
+    // the server's language when it rendered the texts, so both agree
+    locale: language(
+      payload.locale,
+      payload.customer?.locale,
+      view?.navigator.language,
+    ),
+    onPlan: (product, current) => {
+      if (!formKind) {
+        current.setTexts(textsFor(payload, planKind(product?.bundle_id)));
+      }
+    },
     defaultLocale: "en",
     hosted: true,
     checkout,

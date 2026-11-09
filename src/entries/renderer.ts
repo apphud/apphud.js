@@ -2,4 +2,5 @@
 // the builder never charges.
 export { createWebPaywall } from "../renderer/create-web-paywall";
 export { formatText, getPath } from "../renderer/macros";
+export type { MacroContext } from "../renderer/macros";
 export type * from "../renderer/types";
