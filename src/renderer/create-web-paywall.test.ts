@@ -696,6 +696,27 @@ describe("createWebPaywall server texts", () => {
     expect(textOf(root, ".note")).toBe("server note");
   });
 
+  it("keeps a plan's texts when another field of the plan changes", async () => {
+    const { shadow } = createHost();
+    const paywall = create(shadow, { templates: [template] });
+    await paywall.ready;
+    const root = rootOf(shadow);
+    paywall.setTexts({ "$plans.0.price": "$10" });
+
+    // a static field of the same plan: the price stays rendered
+    paywall.updateData((draft) => {
+      (draft.plans as JsonObject[])[0].cta = "Get it";
+    });
+    expect(planNodes(root)[0].textContent).toBe("$10");
+    expect(textOf(root, "#wp-cta-label")).toBe("Get it");
+
+    // another bundle: the price is the old bundle's, so it goes
+    paywall.updateData((draft) => {
+      (draft.plans as JsonObject[])[0].product = { bundle_id: "b3" };
+    });
+    expect(planNodes(root)[0].textContent).toBe("{{ product.price }}");
+  });
+
   it("drops the texts with the data they were rendered from", async () => {
     const { shadow } = createHost();
     const other = { ...template, name: "other" };

@@ -37,7 +37,8 @@ const isObject = (value: unknown): value is JsonObject =>
 const errorMessage = (e: unknown) =>
   e instanceof Error ? e.message : String(e);
 
-// `$plans.0.price` → `plans.0`: the item a collection field belongs to.
+// `$plans.0.price` → `plans.0`: the item a collection field belongs to (its
+// product decides the field's rendered text too).
 const COLLECTION_KEY = /^\$([^.]+\.\d+)(?:\.|$)/;
 // Plan cards: the template's `plans` collection, one node per item.
 const PLAN_NODES = '[data-list="plans"] > [data-index]';
@@ -428,13 +429,19 @@ export function createWebPaywall(
 
   // An edit in the builder: the texts of changed fields are the old data's
   // until the next server answer, so they go and the field shows its own data.
-  // A collection field compares its whole item: a plan that moved up keeps its
-  // text but not its bundle, and so not its price.
+  // A collection field compares itself and its item's product: a plan that
+  // moved up keeps its text but not its bundle, and so not its price, while an
+  // edit of another field of the plan (title, badge) keeps the price.
   function dropStaleTexts(prev: WebPaywallData, next: WebPaywallData) {
     if (!texts) return;
     const source = (from: WebPaywallData, key: string) => {
+      const path = key.slice(1);
       const item = COLLECTION_KEY.exec(key);
-      return JSON.stringify(getPath(from, item ? item[1] : key.slice(1)));
+      return JSON.stringify(
+        item
+          ? [getPath(from, path), getPath(from, `${item[1]}.product`)]
+          : getPath(from, path),
+      );
     };
     const kept = Object.fromEntries(
       Object.entries(texts).filter(
