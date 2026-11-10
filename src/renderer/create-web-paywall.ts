@@ -230,6 +230,9 @@ export function createWebPaywall(
     each("-icon", (node, path) => setGlyph(node, getPath(source, path)));
   }
 
+  // Items already drawn are bound again in place: new nodes would replay the
+  // template's entry animations (and drop hover and focus) on every builder
+  // edit. Only items beyond them are cloned, and nodes past the end go.
   function renderLists() {
     root.querySelectorAll<HTMLElement>("[data-list]").forEach((list) => {
       const children = Array.from(list.children);
@@ -242,18 +245,30 @@ export function createWebPaywall(
       const path = list.dataset.list ?? "";
       const value = getPath(data, path);
       const items = Array.isArray(value) ? value : [];
+      const drawn: HTMLElement[] = [];
       children.forEach((node) => {
-        if (node !== tpl) node.remove();
+        if (node === tpl) return;
+        const i = node instanceof HTMLElement ? Number(node.dataset.index) : -1;
+        if (Number.isInteger(i) && i >= 0 && i < items.length && !drawn[i]) {
+          drawn[i] = node as HTMLElement;
+        } else {
+          node.remove();
+        }
       });
       items.forEach((item, i) => {
-        const node = proto.cloneNode(true) as HTMLElement;
+        let node = drawn[i];
+        if (!node) {
+          node = proto.cloneNode(true) as HTMLElement;
+          node.dataset.index = String(i);
+          list.insertBefore(node, drawn.slice(i + 1).find(Boolean) ?? null);
+        }
         node.style.setProperty("--i", String(i));
-        node.dataset.index = String(i);
         if (isObject(item) && typeof item.icon_mode === "string") {
           node.dataset.iconMode = item.icon_mode;
+        } else {
+          delete node.dataset.iconMode;
         }
         bind(node, item, "item-", `${path}.${i}`);
-        list.append(node);
       });
       const hidden =
         !items.length ||

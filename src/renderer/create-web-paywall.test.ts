@@ -7,6 +7,7 @@ import type {
   JsonObject,
   PayResult,
   PlanProduct,
+  WebPaywallTemplate,
 } from "./types";
 
 // Microtasks stay real (vitest does not fake queueMicrotask by default): onChange
@@ -545,6 +546,85 @@ describe("createWebPaywall checkout", () => {
       false,
     );
     paywall.destroy();
+  });
+});
+
+describe("createWebPaywall lists", () => {
+  const template: WebPaywallTemplate = {
+    name: "lists",
+    title: "Lists",
+    schema: [],
+    css: "",
+    html: `
+      <ul data-list="features">
+        <template><li class="feature"><span data-item-bind="text"></span></li></template>
+      </ul>
+      <div data-list="plans">
+        <template><div class="plan"><span data-item-bind="title"></span></div></template>
+      </div>
+    `,
+    data: {
+      features: [
+        { text: "One", icon_mode: "check" },
+        { text: "Two" },
+      ],
+      plans: [{ title: "Year" }, { title: "Month" }],
+    },
+  };
+
+  const featureNodes = (root: HTMLElement) =>
+    Array.from(root.querySelectorAll<HTMLElement>(".feature"));
+
+  it("binds the items already drawn in place on an edit", async () => {
+    const { shadow } = createHost();
+    const paywall = create(shadow, { templates: [template] });
+    await paywall.ready;
+    const root = rootOf(shadow);
+    const cards = planNodes(root);
+    const features = featureNodes(root);
+
+    paywall.updateData((draft) => {
+      (draft.plans as JsonObject[])[0].title = "Annual";
+      (draft.features as JsonObject[])[0].icon_mode = null;
+      (draft.features as JsonObject[])[1].icon_mode = "cross";
+    });
+
+    // the same nodes: no entry animation replayed on every keystroke
+    expect(planNodes(root)).toEqual(cards);
+    expect(featureNodes(root)).toEqual(features);
+    expect(cards.map((node) => node.textContent)).toEqual(["Annual", "Month"]);
+    expect(features[0].dataset.iconMode).toBeUndefined();
+    expect(features[1].dataset.iconMode).toBe("cross");
+  });
+
+  it("clones only the items added and removes the ones gone", async () => {
+    const { shadow } = createHost();
+    const paywall = create(shadow, { templates: [template] });
+    await paywall.ready;
+    const root = rootOf(shadow);
+    const [year, month] = planNodes(root);
+
+    paywall.updateData((draft) => {
+      (draft.plans as JsonObject[]).push({ title: "Week" });
+    });
+    const grown = planNodes(root);
+    expect(grown.slice(0, 2)).toEqual([year, month]);
+    expect(grown.map((node) => node.textContent)).toEqual([
+      "Year",
+      "Month",
+      "Week",
+    ]);
+    expect(grown[2].dataset.index).toBe("2");
+    expect(grown[2].style.getPropertyValue("--i")).toBe("2");
+
+    // the first plan goes: the nodes left show the plans that moved up
+    paywall.updateData((draft) => {
+      (draft.plans as unknown[]).shift();
+    });
+    const shrunk = planNodes(root);
+    expect(shrunk).toEqual([year, month]);
+    expect(shrunk.map((node) => node.textContent)).toEqual(["Month", "Week"]);
+    expect(shrunk.map((node) => node.dataset.index)).toEqual(["0", "1"]);
   });
 });
 
