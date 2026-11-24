@@ -237,6 +237,11 @@ export type Config = {
     httpRetryDelay: number
     headers: HeadersInit
     disableCookies: boolean
+    /**
+     * Do not pass sha256(userID) as external_id to the Meta pixel.
+     * Set it when the page passes its own user data to the pixel after the base code init.
+     */
+    disableFacebookExternalId?: boolean
 }
 
 export interface EventData {

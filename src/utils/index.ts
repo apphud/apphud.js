@@ -356,8 +356,10 @@ export const buildStripeMetadata = (userMetadata: unknown, amplitudeId: string |
 }
 
 /**
- * Track Meta Pixel purchase or trial event
- * @param subscription - Subscription object containing amount and transaction_id
+ * Track Meta Pixel purchase or trial event.
+ * Before the event, sets external_id on the pixel if setFacebookExternalId could not do it yet.
+ * @param subscription - Subscription object. eventID is transaction_id, the event_id of the same
+ * event in the Conversions API; subscription.id is the fallback (for Paddle it is the same transaction id)
  */
 export const trackFacebookPurchaseEvent = (
     subscription: Subscription
@@ -366,6 +368,8 @@ export const trackFacebookPurchaseEvent = (
         log('Facebook Pixel not available');
         return;
     }
+
+    applyFacebookExternalId();
 
     const amountValue = subscription?.amount ?? 0;
     const isTrial = amountValue === "0" || amountValue === 0;
@@ -382,6 +386,76 @@ export const trackFacebookPurchaseEvent = (
         value: amount.toString(),
         currency: currencyCode
     }, { eventID });
+}
+
+const FACEBOOK_PIXEL_WAIT_TIMEOUT = 5000;
+const FACEBOOK_PIXEL_POLL_INTERVAL = 100;
+
+// sha256(userID) that is not yet set on the pixel
+let pendingFacebookExternalId: string | null = null;
+
+/**
+ * Set the pending external_id on the initialized Meta pixels.
+ *
+ * The pixel takes user data only from fbq('init', pixelId, userData). fbevents.js accepts a second
+ * init of the same pixel only while the pixel has no user data, else it logs "Duplicate Pixel ID".
+ * So the call is skipped for a pixel that already has user data. This behavior and fbq.getState()
+ * are not documented by Meta; if they change, the function does nothing.
+ * @returns false if no pixel is initialized yet (fbevents.js not loaded, or init not done)
+ */
+const applyFacebookExternalId = (): boolean => {
+    const externalId = pendingFacebookExternalId;
+    if (!externalId) return true;
+
+    try {
+        const pixels = typeof window.fbq !== 'undefined' && typeof window.fbq.getState === 'function'
+            ? window.fbq.getState()?.pixels
+            : undefined;
+
+        if (!pixels || pixels.length === 0) return false;
+
+        pendingFacebookExternalId = null;
+
+        pixels.forEach(pixel => {
+            if (pixel.userData && Object.keys(pixel.userData).length > 0) {
+                log(`Facebook Pixel ${pixel.id} already has user data, external_id not set`);
+                return;
+            }
+
+            log(`Set external_id for Facebook Pixel ${pixel.id}: ${externalId}`);
+            window.fbq('init', pixel.id, { external_id: externalId });
+        });
+    } catch (e) {
+        pendingFacebookExternalId = null;
+        logError(e as Error);
+    }
+
+    return true;
+}
+
+/**
+ * Pass external_id to the Meta pixel through Advanced Matching.
+ *
+ * Waits up to 5 seconds for fbevents.js to load and the page to init its pixel. If the pixel is
+ * still not there (e.g. it waits for cookie consent), trackFacebookPurchaseEvent tries again.
+ * Events sent before external_id is set (e.g. the PageView of the base code) have no external_id.
+ * @param externalId - sha256(userID), lowercase hex
+ */
+export const setFacebookExternalId = (externalId: string): void => {
+    pendingFacebookExternalId = externalId;
+    const started = Date.now();
+
+    const attempt = (): void => {
+        if (applyFacebookExternalId()) return;
+
+        if (Date.now() - started < FACEBOOK_PIXEL_WAIT_TIMEOUT) {
+            setTimeout(attempt, FACEBOOK_PIXEL_POLL_INTERVAL);
+        } else {
+            log('Facebook Pixel not initialized yet, external_id will be set before the purchase event');
+        }
+    };
+
+    attempt();
 }
 
 export default {

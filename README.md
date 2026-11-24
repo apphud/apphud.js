@@ -43,6 +43,17 @@ await apphud.init({
 **Parameters:**
 - `apiKey`: Your Apphud API key.
 - `debug`: Enables logging for debugging purposes.
+- `disableFacebookExternalId` (optional, default `false`): Do not pass `external_id` to the Meta pixel. See [Meta Pixel](#meta-pixel).
+
+### Meta Pixel
+
+If the page has the Meta pixel, the SDK passes `sha256(userID)` as `external_id` through Advanced Matching: it calls `fbq('init', pixelId, { external_id })` for the pixel that the page already initialized. The Conversions API sends the same value, so browser and server events match the same user.
+
+- The SDK does this only if the pixel has no user data yet. The pixel accepts user data once per page load, so if the page passes its own user data (`em`, `external_id` and so on) in its `fbq('init')`, the SDK does nothing.
+- If the page passes its own user data **later**, with a second `fbq('init')` after the SDK has started, set `disableFacebookExternalId: true`. Otherwise the pixel rejects the page's call as "Duplicate Pixel ID".
+- Events sent before the SDK starts (such as the `PageView` of the pixel base code) have no `external_id`.
+- `Purchase` and `StartTrial` events have `eventID` equal to the transaction ID, the same `event_id` that the Conversions API uses, so Meta deduplicates them.
+- The SDK no longer sends the `ApphudInit` custom event.
 
 ---
 

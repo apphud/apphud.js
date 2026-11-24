@@ -12,4 +12,5 @@ export const config: Config = {
     redirectDelay: 1000,
     headers: {},
     disableCookies: false,
+    disableFacebookExternalId: false,
 };

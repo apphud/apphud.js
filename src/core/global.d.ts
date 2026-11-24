@@ -12,7 +12,15 @@ declare global {
         gaGlobal: {
             vid: string
         },
-        fbq: (method: string, event: string, properties: Record<string, string>, options?: Record<string, string>) => void,
+        fbq: ((method: string, event: string, properties?: Record<string, string>, options?: Record<string, string>) => void) & {
+            // Not documented by Meta: exists only after fbevents.js has loaded
+            getState?: () => {
+                pixels?: Array<{
+                    id: string
+                    userData?: Record<string, unknown>
+                }>
+            }
+        },
         dataLayer: any[];
         amplitude: {
             getDeviceId(): string;
