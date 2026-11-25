@@ -727,7 +727,9 @@ export default class ApphudSDK implements Apphud {
 
         this.ready(async (): Promise<void> => {
             const urlParams = this.getQueryParamsAsJson()
-            const attributionIds = ['ttclid', 'fbclid', 'gclid']
+            // gclid is intentionally not here: it goes to apphud_attribution_data
+            // together with gbraid/wbraid, where the backend reads Google click IDs
+            const attributionIds = ['ttclid', 'fbclid']
 
             attributionIds.forEach(id => {
                 if (urlParams[id]) {
